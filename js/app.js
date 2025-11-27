@@ -19,7 +19,7 @@ const books = [];
    - https://example.com/cover.jpg
    - img/book1.png
    - covers/mahabharat.png
-   - just "book1.png" (if that file exists relative to the page)
+   - just "book1.png" (relative to the page)
 */
 function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
@@ -58,6 +58,7 @@ const pageInfo = document.getElementById("pageInfo");
 
 const themeToggle = document.getElementById("themeToggle");
 
+// dynamic category row (All + Bookmarked + from sheet)
 const categoryRow = document.getElementById("categories");
 
 const bookModal = document.getElementById("bookModal");
@@ -75,11 +76,11 @@ const mobileBottomNav = document.getElementById("mobileBottomNav");
 const headerEl = document.querySelector("header");
 
 /* ============================================
-   2.5 LOAD BOOKS FROM GOOGLE SHEET (NO MAGIC)
+   2.5 LOAD BOOKS FROM GOOGLE SHEET + CACHE
 ============================================ */
 
 function mapRowToBook(row) {
-  // Your headers are all small like: title, author, category, fileid, cover, tags, description, details
+  // Your headers: title, author, category, fileid, cover, tags, description, details
   const title = (row.title || "").trim();
   const author = (row.author || "").trim();
   const category = (row.category || "Other").trim();
@@ -117,22 +118,69 @@ function mapRowToBook(row) {
   };
 }
 
-function loadBooksFromSheet() {
-  booksContainer.innerHTML = "<p>Loading books...</p>";
+let historyInitialized = false;
+let exitConfirmShown = false;
+let firstDataApplied = false;
 
+function initHistory() {
+  if (historyInitialized) return;
+  if (!window.history || !window.history.replaceState) return;
+
+  historyInitialized = true;
+  history.replaceState({ screen: "home" }, "");
+  window.addEventListener("popstate", handleBackNavigation);
+}
+
+function applyBooksAndInit(newBooks) {
+  const hadDataBefore = firstDataApplied;
+  firstDataApplied = true;
+
+  books.length = 0;
+  newBooks.forEach(b => books.push(b));
+
+  renderTopCategories();
+
+  if (hadDataBefore) {
+    // Preserve current state (category/search) and just re-render
+    renderBooks();
+  } else {
+    // First time data loaded → go to home
+    changeCategory("all");
+  }
+
+  initHistory();
+}
+
+function loadBooksFromSheet() {
+  // Try fast load from localStorage cache first
+  try {
+    const cacheStr = localStorage.getItem("booksCache");
+    if (cacheStr) {
+      const cached = JSON.parse(cacheStr);
+      if (Array.isArray(cached) && cached.length) {
+        applyBooksAndInit(cached);
+      }
+    } else {
+      booksContainer.innerHTML = "<p>Loading books...</p>";
+    }
+  } catch (e) {
+    booksContainer.innerHTML = "<p>Loading books...</p>";
+  }
+
+  // Always fetch fresh data in the background
   fetch(SHEET_URL)
     .then(res => res.json())
     .then(rows => {
       const mapped = rows.map(mapRowToBook);
-      books.length = 0;
-      mapped.forEach(b => books.push(b));
-
-      renderTopCategories();
-      changeCategory("all");
+      // store latest in cache for faster next load
+      localStorage.setItem("booksCache", JSON.stringify(mapped));
+      applyBooksAndInit(mapped);
     })
     .catch(err => {
       console.error("Error loading books from Google Sheet:", err);
-      booksContainer.innerHTML = "<p>Failed to load books.</p>";
+      if (!firstDataApplied) {
+        booksContainer.innerHTML = "<p>Failed to load books.</p>";
+      }
     });
 }
 
@@ -148,6 +196,10 @@ const pageSize = 40;
 
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 let readStats = JSON.parse(localStorage.getItem("readStats") || "{}");
+
+function isOnHomeScreen() {
+  return currentCategory === "all" && !currentSearch;
+}
 
 /* ============================================
    4. THEME (DARK / LIGHT)
@@ -388,10 +440,15 @@ function getFilteredBooks() {
 }
 
 /* ============================================
-   9. MODALS (BOOK & CATEGORY)
+   9. MODALS (BOOK & CATEGORY) + BACK HANDLING
 ============================================ */
 
 function openBookModal(book) {
+  // Push a state for the modal so back can close it
+  if (window.history && window.history.pushState) {
+    history.pushState({ screen: "bookModal" }, "");
+  }
+
   const cover = book.cover || "img/book.jpg";
   const stats = readStats[book.title] || { count: 0, lastRead: null };
 
@@ -468,6 +525,10 @@ modalClose.addEventListener("click", closeBookModal);
 modalOverlay.addEventListener("click", closeBookModal);
 
 function openCategoryModal() {
+  if (window.history && window.history.pushState) {
+    history.pushState({ screen: "categoryModal" }, "");
+  }
+
   const cats = getAllCategories();
   categoryList.innerHTML = cats
     .map(cat => {
@@ -500,6 +561,53 @@ categoryList.addEventListener("click", e => {
   changeCategory(cat);
   closeCategoryModal();
 });
+
+/* Back button / navigation handler */
+
+function handleBackNavigation() {
+  // 1) If a book modal is open, close it instead of leaving
+  if (!bookModal.classList.contains("hidden")) {
+    closeBookModal();
+    if (window.history && window.history.pushState) {
+      history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
+    }
+    return;
+  }
+
+  // 2) If category modal is open, close it
+  if (!categoryModal.classList.contains("hidden")) {
+    closeCategoryModal();
+    if (window.history && window.history.pushState) {
+      history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
+    }
+    return;
+  }
+
+  // 3) If not on home screen, go to home instead of leaving the app
+  if (!isOnHomeScreen()) {
+    changeCategory("all");
+    if (window.history && window.history.replaceState) {
+      history.replaceState({ screen: "home" }, "");
+    }
+    return;
+  }
+
+  // 4) Already on home -> ask once before leaving the app
+  if (!exitConfirmShown) {
+    const leave = window.confirm("Do you want to leave the library app?");
+    if (leave) {
+      window.removeEventListener("popstate", handleBackNavigation);
+      if (window.history && window.history.back) {
+        history.back();
+      }
+    } else {
+      exitConfirmShown = true; // don't ask again
+      if (window.history && window.history.pushState) {
+        history.pushState({ screen: "home" }, "");
+      }
+    }
+  }
+}
 
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
@@ -555,7 +663,7 @@ function renderBooks() {
 
     card.innerHTML = `
       <button class="bookmark-btn" type="button"
-        onclick="toggleBookmark('${book.title.replace(/'/g, "\'")}')">
+        onclick="toggleBookmark('${book.title.replace(/'/g, "\\'")}')">
         <i class="${starred ? "fa-solid" : "fa-regular"} fa-bookmark"></i>
       </button>
 
@@ -687,6 +795,7 @@ mobileBottomNav.addEventListener("click", e => {
     changeCategory("all");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (nav === "bookmarks") {
+    currentCategory = "bookmarked";
     changeCategory("bookmarked");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (nav === "categories") {
