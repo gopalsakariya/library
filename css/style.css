@@ -388,21 +388,20 @@ body:not(.dark) .bookmark-btn {
   margin-top: 0.55rem;
 }
 
-/* Text + clamping */
+/* Title: show full (no "..."), just smaller to fit */
+.book-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.25;
+  white-space: normal;
+  display: block;
+}
 
-.book-title,
+/* Other text can be clamped/hidden */
 .book-author,
 .book-category,
 .book-desc {
   overflow: hidden;
-}
-
-.book-title {
-  font-size: 1rem;
-  font-weight: 600;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;          /* max 2 lines */
-  -webkit-box-orient: vertical;
 }
 
 .book-author,
@@ -416,11 +415,12 @@ body:not(.dark) .book-category {
   color: #6b7280;
 }
 
+/* Description: clamp to 3 lines */
 .book-desc {
   margin-top: 0.15rem;
   font-size: 0.8rem;
   display: -webkit-box;
-  -webkit-line-clamp: 3;          /* max 3 lines */
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
@@ -765,7 +765,7 @@ footer {
   }
 
   .book-title {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
   }
 
   .book-author,
