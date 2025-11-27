@@ -27,6 +27,14 @@ body:not(.dark) {
   color: #111827;
 }
 
+/* active category in light mode */
+body:not(.dark) .category-btn.active {
+  background: #6366f1;
+  color: #f9fafb;
+  border-color: #6366f1;
+}
+
+
 /* Utility */
 .hidden {
   display: none !important;
@@ -692,6 +700,21 @@ body:not(.dark) .mobile-bottom-nav button {
   color: #4b5563;
 }
 
+/* active nav item */
+.mobile-bottom-nav button.nav-active {
+  background: #111827;
+  border-radius: 999px;
+  padding: 0.25rem 0.9rem;
+  color: #e5e7eb;
+}
+
+/* active nav in light mode */
+body:not(.dark) .mobile-bottom-nav button.nav-active {
+  background: #111827;
+  color: #f9fafb;
+}
+
+
 /* =====================================================
    FOOTER
 ===================================================== */
@@ -820,4 +843,72 @@ footer {
   footer {
     margin-bottom: 70px; /* room for bottom nav */
   }
+}
+
+/* =====================================================
+   SEARCH OVERLAY (MOBILE)
+===================================================== */
+
+.search-overlay .modal-dialog {
+  max-width: 500px;
+}
+
+.search-dialog {
+  max-width: 500px;
+}
+
+.search-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+#searchOverlayInput {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+}
+
+#searchOverlayInput::placeholder {
+  color: #6b7280;
+}
+
+.search-overlay-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.search-overlay-actions button {
+  flex: 1 1 0;
+  border-radius: 999px;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  background: #111827;
+  color: #e5e7eb;
+}
+
+.search-overlay-actions button:nth-child(2) {
+  background: #374151;
+}
+
+/* light mode */
+body:not(.dark) #searchOverlayInput {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+body:not(.dark) #searchOverlayInput::placeholder {
+  color: #9ca3af;
+}
+
+body:not(.dark) .search-overlay-actions button {
+  background: #111827;
+  color: #f9fafb;
 }
