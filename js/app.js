@@ -73,6 +73,25 @@ const categoryList = document.getElementById("categoryList");
 
 const mobileBottomNav = document.getElementById("mobileBottomNav");
 
+let searchOverlay = null; // will be created on demand
+
+function setActiveNav(navName) {
+  if (!mobileBottomNav) return;
+  const buttons = mobileBottomNav.querySelectorAll("button[data-nav]");
+  buttons.forEach(btn => {
+    const n = btn.dataset.nav;
+    btn.classList.toggle("nav-active", n === navName);
+  });
+}
+
+function isAnyPopupOpen() {
+  const bookOpen = !bookModal.classList.contains("hidden");
+  const catOpen = !categoryModal.classList.contains("hidden");
+  const searchOpen = searchOverlay && !searchOverlay.classList.contains("hidden");
+  return bookOpen || catOpen || searchOpen;
+}
+
+
 const headerEl = document.querySelector("header");
 
 /* ============================================
@@ -386,6 +405,15 @@ function changeCategory(cat) {
     });
   }
 
+  // update nav active state
+  if (isOnHomeScreen()) {
+    setActiveNav("home");
+  } else if (currentCategory === "bookmarked") {
+    setActiveNav("bookmarks");
+  } else {
+    setActiveNav(null);
+  }
+
   currentSearch = "";
   searchInput.value = "";
   currentSort = "relevance";
@@ -397,6 +425,96 @@ function changeCategory(cat) {
   if (relBtn) relBtn.classList.add("active");
 
   renderBooks();
+}
+function ensureSearchOverlay() {
+  if (searchOverlay) return;
+
+  searchOverlay = document.createElement("div");
+  searchOverlay.id = "searchOverlay";
+  searchOverlay.className = "modal search-overlay hidden";
+  searchOverlay.innerHTML = `
+    <div class="modal-overlay"></div>
+    <div class="modal-dialog search-dialog">
+      <button class="modal-close" type="button">&times;</button>
+      <div class="modal-body">
+        <div class="search-overlay-inner">
+          <input id="searchOverlayInput" type="text" placeholder="Search books..." />
+          <div class="search-overlay-actions">
+            <button id="searchOverlaySearch">Search</button>
+            <button id="searchOverlayClear">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(searchOverlay);
+
+  const ov = searchOverlay.querySelector(".modal-overlay");
+  const closeBtn = searchOverlay.querySelector(".modal-close");
+  const input = searchOverlay.querySelector("#searchOverlayInput");
+  const searchBtn = searchOverlay.querySelector("#searchOverlaySearch");
+  const clearBtn = searchOverlay.querySelector("#searchOverlayClear");
+
+  const close = () => {
+    searchOverlay.classList.add("hidden");
+    document.body.style.overflow = "";
+  };
+
+  ov.addEventListener("click", close);
+  closeBtn.addEventListener("click", close);
+
+  searchBtn.addEventListener("click", () => {
+    const val = input.value.trim();
+    searchInput.value = val;
+    currentSearch = val;
+    currentPage = 1;
+    sortControls.classList.toggle("hidden", !currentSearch);
+    renderBooks();
+    close();
+  });
+
+  clearBtn.addEventListener("click", () => {
+    input.value = "";
+    searchInput.value = "";
+    currentSearch = "";
+    currentPage = 1;
+    sortControls.classList.add("hidden");
+    renderBooks();
+    close();
+  });
+
+  input.addEventListener("keyup", e => {
+    if (e.key === "Enter") {
+      searchBtn.click();
+    }
+  });
+}
+
+function openSearchOverlay() {
+  ensureSearchOverlay();
+  if (window.history && window.history.pushState) {
+    history.pushState({ screen: "searchOverlay" }, "");
+  }
+  const input = searchOverlay.querySelector("#searchOverlayInput");
+  searchOverlay.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  input.value = searchInput.value;
+  setActiveNav("search");
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeSearchOverlay() {
+  if (!searchOverlay) return;
+  searchOverlay.classList.add("hidden");
+  document.body.style.overflow = "";
+  // After closing, adjust nav state based on where we are
+  if (isOnHomeScreen()) {
+    setActiveNav("home");
+  } else if (currentCategory === "bookmarked") {
+    setActiveNav("bookmarks");
+  } else {
+    setActiveNav(null);
+  }
 }
 
 function getFilteredBooks() {
@@ -789,22 +907,24 @@ mobileBottomNav.addEventListener("click", e => {
   const btn = e.target.closest("button[data-nav]");
   if (!btn) return;
 
+  // If any popup is open, ignore nav taps
+  if (isAnyPopupOpen()) return;
+
   const nav = btn.dataset.nav;
 
   if (nav === "home") {
     changeCategory("all");
+    setActiveNav("home");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (nav === "bookmarks") {
-    currentCategory = "bookmarked";
     changeCategory("bookmarked");
+    setActiveNav("bookmarks");
     window.scrollTo({ top: 0, behavior: "smooth" });
   } else if (nav === "categories") {
+    setActiveNav("categories");
     openCategoryModal();
   } else if (nav === "search") {
-    const rect = searchInput.getBoundingClientRect();
-    const offset = window.scrollY + rect.top - 16;
-    window.scrollTo({ top: offset, behavior: "smooth" });
-    setTimeout(() => searchInput.focus(), 250);
+    openSearchOverlay();
   }
 });
 
