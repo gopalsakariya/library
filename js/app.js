@@ -69,9 +69,10 @@ function mapRowToBook(row) {
     ? rawTags.split(",").map(t => t.trim()).filter(Boolean)
     : [];
 
-  // direct URL for PDF (Cloudflare R2, etc.)
+  // NEW: direct URL (Cloudflare R2 or any direct link)
   const pdfurl = (row.pdfurl || row.pdf || row.url || "").trim();
 
+  // For read & download we use the same URL
   const viewLink = pdfurl || "#";
   const downloadLink = pdfurl || "#";
 
@@ -478,9 +479,12 @@ function openBookModal(book) {
          <i class="fa-solid fa-book-open"></i>
          <span>Read</span>
       </a>
-      <a href="#"
+      <a href="${book.downloadLink}"
+         target="_blank"
+         rel="noopener noreferrer"
          class="modal-btn"
-         data-download="${book.downloadLink}">
+         download
+         data-role="download-link">
          <i class="fa-solid fa-download"></i>
          <span>Download</span>
       </a>
@@ -775,8 +779,11 @@ function renderBooks() {
            <i class="fa-solid fa-book-open"></i>
            <span>Read</span>
         </a>
-        <a href="#"
-           data-download="${book.downloadLink}">
+        <a href="${book.downloadLink}"
+           target="_blank"
+           rel="noopener noreferrer"
+           download
+           data-role="download-link">
            <i class="fa-solid fa-download"></i>
            <span>Download</span>
         </a>
@@ -803,29 +810,7 @@ function renderBooks() {
 }
 
 /* ============================================
-   12. DOWNLOAD HANDLER (NO NEW TAB)
-============================================ */
-
-function triggerDownload(url) {
-  if (!url || url === "#") return;
-  const a = document.createElement("a");
-  a.href = url;
-  a.setAttribute("download", "");
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-document.addEventListener("click", e => {
-  const dlBtn = e.target.closest("[data-download]");
-  if (!dlBtn) return;
-  e.preventDefault();
-  const url = dlBtn.dataset.download;
-  triggerDownload(url);
-});
-
-/* ============================================
-   13. SEARCH, CLEAR, SORT
+   12. SEARCH, CLEAR, SORT
 ============================================ */
 
 searchButton.addEventListener("click", () => {
@@ -857,7 +842,7 @@ sortButtons.forEach(btn => {
 });
 
 /* ============================================
-   14. PAGINATION CONTROLS
+   13. PAGINATION CONTROLS
 ============================================ */
 
 prevPageBtn.addEventListener("click", () => {
@@ -875,7 +860,7 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* ============================================
-   15. MOBILE BOTTOM NAV
+   14. MOBILE BOTTOM NAV
 ============================================ */
 
 mobileBottomNav.addEventListener("click", e => {
@@ -903,7 +888,7 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   16. INITIALIZE
+   15. INITIALIZE
 ============================================ */
 
 loadBooksFromSheet();
