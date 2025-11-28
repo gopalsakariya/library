@@ -483,7 +483,7 @@ body:not(.dark) .book-links a {
 }
 
 /* =====================================================
-   MODAL BASE
+   MODAL BASE (CENTERED, CONTENT-SIZED)
 ===================================================== */
 
 .modal {
@@ -509,9 +509,9 @@ body:not(.dark) .book-links a {
 .modal-dialog {
   position: relative;
   z-index: 1;
-  max-width: 700px;
-  width: 100%;
-  max-height: 100vh;
+  width: auto;
+  max-width: min(700px, 95vw);
+  max-height: 90vh;
   background: #020617;
   border-radius: 18px;
   border: 1px solid #1f2937;
@@ -544,7 +544,7 @@ body:not(.dark) .modal-close {
   color: #f9fafb;
 }
 
-/* Modal body: normal flow, scroll when needed */
+/* Modal body: scroll if content taller than 90vh */
 .modal-body {
   margin-top: 0.4rem;
   overflow-y: auto;
@@ -634,8 +634,8 @@ body:not(.dark) .tag-chip {
 .modal-actions {
   display: flex;
   gap: 0.6rem;
-  margin-top: 1rem;      /* space above buttons */
-  margin-bottom: 0.5rem; /* small bottom padding */
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .modal-btn {
@@ -903,15 +903,15 @@ footer {
   }
 
   .modal {
-    padding: 0;
+    padding: 0.75rem;              /* keep some space around popup */
   }
 
   .modal-dialog {
-    width: 100%;
-    max-width: 100%;
-    max-height: 100vh;
-    height: 100vh;
-    border-radius: 0;
+    width: 94vw;
+    max-width: 94vw;
+    max-height: 90vh;
+    height: auto;
+    border-radius: 18px;
     padding: 0.8rem;
   }
 
