@@ -4,11 +4,7 @@
 
 // Your Google Sheet ID
 const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
-
-// Main data tab name
 const SHEET_TAB = "Sheet1";
-
-// OpenSheet URL
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
 // Books stored here
@@ -19,7 +15,7 @@ function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
   if (!cover) return "img/book.jpg";
   if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
-  return cover; // treat as relative/local path
+  return cover; // treat as relative/local path (e.g. img/book1.png)
 }
 
 /* ============================================
@@ -59,7 +55,7 @@ const headerEl = document.querySelector("header");
 let searchOverlay = null; // created lazily
 
 /* ============================================
-   2.5 LOAD BOOKS FROM GOOGLE SHEET + CACHE
+   3. LOAD BOOKS FROM GOOGLE SHEET + CACHE
 ============================================ */
 
 function mapRowToBook(row) {
@@ -73,16 +69,12 @@ function mapRowToBook(row) {
     ? rawTags.split(",").map(t => t.trim()).filter(Boolean)
     : [];
 
-  const fileId = (row.fileid || row.fileId || "").trim();
-  let viewLink = "#";
-  let downloadLink = "#";
+  // NEW: direct URL (Cloudflare R2 or any direct link)
+  const pdfurl = (row.pdfurl || row.pdf || row.url || "").trim();
 
-  if (fileId) {
-    // View: open in Drive viewer (read)
-    viewLink = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
-    // Download: force download endpoint
-    downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
-  }
+  // For read & download we use the same URL
+  const viewLink = pdfurl || "#";
+  const downloadLink = pdfurl || "#";
 
   const cover = getCoverPath(row.cover);
 
@@ -162,7 +154,7 @@ function loadBooksFromSheet() {
 }
 
 /* ============================================
-   3. STATE
+   4. STATE
 ============================================ */
 
 let currentCategory = "all";
@@ -178,7 +170,7 @@ function isOnHomeScreen() {
 }
 
 /* ============================================
-   4. THEME (DARK / LIGHT)
+   5. THEME (DARK / LIGHT)
 ============================================ */
 
 function applyTheme(theme) {
@@ -200,7 +192,7 @@ themeToggle.addEventListener("click", () => {
 });
 
 /* ============================================
-   5. HEADER HIDE ON SCROLL
+   6. HEADER HIDE ON SCROLL
 ============================================ */
 
 let lastScrollY = window.scrollY;
@@ -216,7 +208,7 @@ window.addEventListener("scroll", () => {
 });
 
 /* ============================================
-   6. HELPERS
+   7. HELPERS
 ============================================ */
 
 function normalize(str) {
@@ -269,11 +261,14 @@ function highlight(text) {
   if (!currentSearch) return text;
   const q = currentSearch.trim();
   if (!q) return text;
-  return text.replace(new RegExp(escapeRegExp(q), "ig"), m => `<mark>${m}</mark>`);
+  return text.replace(
+    new RegExp(escapeRegExp(q), "ig"),
+    m => `<mark>${m}</mark>`
+  );
 }
 
 /* ============================================
-   7. BOOKMARKS
+   8. BOOKMARKS
 ============================================ */
 
 function toggleBookmark(title) {
@@ -287,7 +282,7 @@ function toggleBookmark(title) {
 }
 
 /* ============================================
-   8. CATEGORY & FILTERING
+   9. CATEGORY & FILTERING
 ============================================ */
 
 function getAllCategories() {
@@ -405,20 +400,23 @@ function getFilteredBooks() {
   } else if (currentSort === "category") {
     items.sort((a, b) => a.book.category.localeCompare(b.book.category));
   } else {
-    items.sort((a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title));
+    items.sort(
+      (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
+    );
   }
 
   return items;
 }
 
 /* ============================================
-   9. POPUP / MODALS & BACK HANDLING
+   10. POPUP / MODALS & BACK HANDLING
 ============================================ */
 
 function isAnyPopupOpen() {
   const bookOpen = !bookModal.classList.contains("hidden");
   const catOpen = !categoryModal.classList.contains("hidden");
-  const searchOpen = searchOverlay && !searchOverlay.classList.contains("hidden");
+  const searchOpen =
+    searchOverlay && !searchOverlay.classList.contains("hidden");
   return bookOpen || catOpen || searchOpen;
 }
 
@@ -433,29 +431,27 @@ function openBookModal(book) {
 
   const cover = book.cover || "img/book.jpg";
 
-const tagChips =
-  book.tags && book.tags.length
-    ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
-    : "";
+  const tagChips =
+    book.tags && book.tags.length
+      ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
+      : "";
 
-
-  // Compact layout: author + category in one row, no reading stats
   modalBody.innerHTML = `
     <div class="modal-book-header">
       <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
       <div class="modal-book-main">
         <h3>${book.title}</h3>
-            <p class="modal-author-category">
-      <span class="mac-author">${book.author}</span>
-      <span class="mac-separator">•</span>
-      <span class="mac-category">${book.category}</span>
-      ${
-        tagChips
-          ? `<span class="mac-separator">•</span>
-             <span class="mac-tags">${tagChips}</span>`
-          : ""
-      }
-    </p>
+        <p class="modal-author-category">
+          <span class="mac-author">${book.author}</span>
+          <span class="mac-separator">•</span>
+          <span class="mac-category">${book.category}</span>
+          ${
+            tagChips
+              ? `<span class="mac-separator">•</span>
+                 <span class="mac-tags">${tagChips}</span>`
+              : ""
+          }
+        </p>
       </div>
     </div>
 
@@ -473,11 +469,10 @@ const tagChips =
         : ""
     }
 
-
-
     <div class="modal-section modal-actions">
       <a href="${book.viewLink}"
          target="_blank"
+         rel="noopener noreferrer"
          class="modal-btn"
          data-role="read-link"
          data-title="${book.title}">
@@ -486,8 +481,10 @@ const tagChips =
       </a>
       <a href="${book.downloadLink}"
          target="_blank"
+         rel="noopener noreferrer"
          class="modal-btn"
-         download>
+         download
+         data-role="download-link">
          <i class="fa-solid fa-download"></i>
          <span>Download</span>
       </a>
@@ -518,11 +515,7 @@ function openCategoryModal() {
   categoryList.innerHTML = cats
     .map(cat => {
       const label =
-        cat === "all"
-          ? "All"
-          : cat === "bookmarked"
-          ? "Bookmarked"
-          : cat;
+        cat === "all" ? "All" : cat === "bookmarked" ? "Bookmarked" : cat;
       return `<button class="category-pill" data-cat="${cat}">${label}</button>`;
     })
     .join("");
@@ -715,7 +708,7 @@ document.addEventListener("keydown", e => {
 });
 
 /* ============================================
-   10. RENDER BOOKS + PAGINATION
+   11. RENDER BOOKS + PAGINATION
 ============================================ */
 
 function renderBooks() {
@@ -780,6 +773,7 @@ function renderBooks() {
       <div class="book-links">
         <a href="${book.viewLink}"
            target="_blank"
+           rel="noopener noreferrer"
            data-role="read-link"
            data-title="${book.title}">
            <i class="fa-solid fa-book-open"></i>
@@ -787,7 +781,9 @@ function renderBooks() {
         </a>
         <a href="${book.downloadLink}"
            target="_blank"
-           download>
+           rel="noopener noreferrer"
+           download
+           data-role="download-link">
            <i class="fa-solid fa-download"></i>
            <span>Download</span>
         </a>
@@ -804,7 +800,8 @@ function renderBooks() {
     };
 
     card.addEventListener("click", e => {
-      if (e.target.closest(".book-links") || e.target.closest(".bookmark-btn")) return;
+      if (e.target.closest(".book-links") || e.target.closest(".bookmark-btn"))
+        return;
       openBookModal(book);
     });
 
@@ -813,7 +810,7 @@ function renderBooks() {
 }
 
 /* ============================================
-   11. SEARCH, CLEAR, SORT
+   12. SEARCH, CLEAR, SORT
 ============================================ */
 
 searchButton.addEventListener("click", () => {
@@ -845,7 +842,7 @@ sortButtons.forEach(btn => {
 });
 
 /* ============================================
-   12. PAGINATION CONTROLS
+   13. PAGINATION CONTROLS
 ============================================ */
 
 prevPageBtn.addEventListener("click", () => {
@@ -863,7 +860,7 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* ============================================
-   13. MOBILE BOTTOM NAV
+   14. MOBILE BOTTOM NAV
 ============================================ */
 
 mobileBottomNav.addEventListener("click", e => {
@@ -891,7 +888,7 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   14. INITIALIZE
+   15. INITIALIZE
 ============================================ */
 
 loadBooksFromSheet();
