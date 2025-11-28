@@ -78,8 +78,9 @@ function mapRowToBook(row) {
   let downloadLink = "#";
 
   if (fileId) {
-    // Direct endpoint, browser decides viewer vs download
-    viewLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    // View: open in Drive viewer (read)
+    viewLink = `https://drive.google.com/file/d/${fileId}/view?usp=drivesdk`;
+    // Download: force download endpoint
     downloadLink = `https://drive.google.com/uc?export=download&id=${fileId}`;
   }
 
@@ -171,7 +172,6 @@ let currentPage = 1;
 const pageSize = 40;
 
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-let readStats = JSON.parse(localStorage.getItem("readStats") || "{}");
 
 function isOnHomeScreen() {
   return currentCategory === "all" && !currentSearch;
@@ -273,7 +273,7 @@ function highlight(text) {
 }
 
 /* ============================================
-   7. BOOKMARKS & READ STATS
+   7. BOOKMARKS
 ============================================ */
 
 function toggleBookmark(title) {
@@ -284,20 +284,6 @@ function toggleBookmark(title) {
   }
   localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
   renderBooks();
-}
-
-function recordRead(title) {
-  const now = new Date().toISOString();
-  const stat = readStats[title] || { count: 0, lastRead: null };
-  stat.count++;
-  stat.lastRead = now;
-  readStats[title] = stat;
-  localStorage.setItem("readStats", JSON.stringify(readStats));
-}
-
-function formatLastRead(iso) {
-  if (!iso) return "Never";
-  return new Date(iso).toLocaleString();
 }
 
 /* ============================================
@@ -446,7 +432,6 @@ function openBookModal(book) {
   }
 
   const cover = book.cover || "img/book.jpg";
-  const stats = readStats[book.title] || { count: 0, lastRead: null };
 
   const tagsHtml =
     book.tags && book.tags.length
@@ -458,13 +443,15 @@ function openBookModal(book) {
          </div>`
       : "";
 
+  // Compact layout: author + category in one row, no reading stats
   modalBody.innerHTML = `
     <div class="modal-book-header">
       <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
       <div class="modal-book-main">
         <h3>${book.title}</h3>
-        <p class="modal-author">by ${book.author}</p>
-        <p class="modal-category">Category: ${book.category}</p>
+        <p class="modal-author-category">
+          <span>${book.author}</span> • <span>${book.category}</span>
+        </p>
       </div>
     </div>
 
@@ -483,12 +470,6 @@ function openBookModal(book) {
     }
 
     ${tagsHtml}
-
-    <div class="modal-section">
-      <h4>Reading stats</h4>
-      <p>Last read: ${formatLastRead(stats.lastRead)}</p>
-      <p>Times opened: ${stats.count}</p>
-    </div>
 
     <div class="modal-section modal-actions">
       <a href="${book.viewLink}"
@@ -878,25 +859,7 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* ============================================
-   13. READ LINK TRACKING
-============================================ */
-
-booksContainer.addEventListener("click", e => {
-  const link = e.target.closest("[data-role='read-link']");
-  if (!link) return;
-  const title = link.dataset.title;
-  if (title) recordRead(title);
-});
-
-modalBody.addEventListener("click", e => {
-  const link = e.target.closest("[data-role='read-link']");
-  if (!link) return;
-  const title = link.dataset.title;
-  if (title) recordRead(title);
-});
-
-/* ============================================
-   14. MOBILE BOTTOM NAV
+   13. MOBILE BOTTOM NAV
 ============================================ */
 
 mobileBottomNav.addEventListener("click", e => {
@@ -924,7 +887,7 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   15. INITIALIZE
+   14. INITIALIZE
 ============================================ */
 
 loadBooksFromSheet();
