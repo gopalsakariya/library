@@ -433,15 +433,11 @@ function openBookModal(book) {
 
   const cover = book.cover || "img/book.jpg";
 
-  const tagsHtml =
-    book.tags && book.tags.length
-      ? `<div class="modal-section">
-           <h4>Info</h4>
-           <div class="tag-row">
-             ${book.tags.map(t => `<span class="tag-chip">${t}</span>`).join("")}
-           </div>
-         </div>`
-      : "";
+const tagChips =
+  book.tags && book.tags.length
+    ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
+    : "";
+
 
   // Compact layout: author + category in one row, no reading stats
   modalBody.innerHTML = `
@@ -449,9 +445,17 @@ function openBookModal(book) {
       <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
       <div class="modal-book-main">
         <h3>${book.title}</h3>
-        <p class="modal-author-category">
-          <span>${book.author}</span> • <span>${book.category}</span>
-        </p>
+            <p class="modal-author-category">
+      <span class="mac-author">${book.author}</span>
+      <span class="mac-separator">•</span>
+      <span class="mac-category">${book.category}</span>
+      ${
+        tagChips
+          ? `<span class="mac-separator">•</span>
+             <span class="mac-tags">${tagChips}</span>`
+          : ""
+      }
+    </p>
       </div>
     </div>
 
@@ -469,7 +473,7 @@ function openBookModal(book) {
         : ""
     }
 
-    ${tagsHtml}
+
 
     <div class="modal-section modal-actions">
       <a href="${book.viewLink}"
