@@ -1,251 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0b1220" />
   <meta charset="UTF-8" />
-  <title>Library</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library.TheGopal.com</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Prevent white flash: early theme application -->
-  <script>
-    (function () {
-      try {
-        const stored = localStorage.getItem("theme");
-        const systemPrefersDark =
-          window.matchMedia &&
-          window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-        const theme = stored || (systemPrefersDark ? "dark" : "light");
-        document.documentElement.setAttribute("data-theme", theme);
+  <!-- Font Awesome -->
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+/>
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
+/>
 
-        // Make sure background isn't white before CSS loads
-        document.documentElement.style.backgroundColor =
-          theme === "dark" ? "#020617" : "#f9fafb";
-      } catch (e) {
-        // Fallback if anything goes wrong
-        document.documentElement.setAttribute("data-theme", "light");
-        document.documentElement.style.backgroundColor = "#f9fafb";
-      }
-    })();
-  </script>
-
-  <!-- Font & Icons (optional but used for sun/moon, nav icons) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
-
-  <!-- Main CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
-  <header>
-    <div class="header-left">
-      <div class="logo-circle">
-        <i class="fa-solid fa-book"></i>
-      </div>
-      <div>
-        <h1>Game Library</h1>
-        <p>Neon-powered study vault</p>
-      </div>
-    </div>
 
-    <div class="header-actions">
-      <button id="themeToggle" class="theme-toggle" title="Toggle theme">
-        <!-- Default icon, JS will flip it based on theme -->
-        <i class="fa-solid fa-sun"></i>
+<header>
+  <h1>Library.TheGopal.com</h1>
+  <div class="header-right">
+    <!-- Theme toggle icon (moon/sun via JS) -->
+    <button id="themeToggle" class="theme-toggle" type="button" title="Toggle dark / light">
+      <i class="fa-regular fa-moon"></i>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- SEARCH SECTION -->
+  <section id="search">
+    <div id="searchBar">
+      <input type="text" id="searchInput" placeholder="Search books..." />
+      <button id="searchButton" title="Search">
+        <i class="fa-solid fa-magnifying-glass"></i>
       </button>
-    </div>
-  </header>
-
-  <main>
-    <section class="top-controls">
-      <div id="search">
-        <div id="searchBar">
-          <div id="searchInputWrapper">
-            <span id="searchIcon">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </span>
-            <input
-              type="text"
-              id="searchInput"
-              placeholder="Search by title, author, tags..."
-              autocomplete="off"
-            />
-            <button id="clearSearchButton" type="button">
-              <i class="fa-solid fa-xmark"></i>
-            </button>
-          </div>
-
-          <button id="advancedSearchButton" type="button">
-            <i class="fa-solid fa-sliders"></i>
-            Advanced
-          </button>
-        </div>
-
-        <div id="controlsRow">
-          <div id="categoriesRow">
-            <!-- Category pills will be injected via JS -->
-          </div>
-
-          <div id="statsSortRow">
-            <div id="stats">0 books loaded</div>
-            <div id="sortWrapper">
-              Sort:
-              <select id="sortSelect">
-                <option value="relevance">Relevance</option>
-                <option value="title">Title</option>
-                <option value="author">Author</option>
-                <option value="category">Category</option>
-              </select>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="booksSection">
-      <div id="booksGrid">
-        <!-- Book cards will be injected via JS -->
-      </div>
-
-      <div id="emptyState" class="hidden">
-        <p>No books found for this search.</p>
-        <button id="resetFiltersButton" type="button">
-          Reset filters
-        </button>
-      </div>
-
-      <div id="pagination">
-        <button id="prevPageButton" type="button">Prev</button>
-        <span id="pageInfo">Page 1 of 1</span>
-        <button id="nextPageButton" type="button">Next</button>
-      </div>
-    </section>
-  </main>
-
-  <!-- Book Detail Modal -->
-  <div id="bookModal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-dialog">
-      <button class="modal-close" type="button" data-close-modal="bookModal">
+      <button id="clearSearchButton" title="Clear search">
         <i class="fa-solid fa-xmark"></i>
       </button>
-
-      <div class="book-modal-header">
-        <div class="book-modal-cover">
-          <img id="bookModalCover" src="" alt="Book cover" />
-        </div>
-        <div class="book-modal-main">
-          <h2 id="bookModalTitle"></h2>
-          <p class="book-author" id="bookModalAuthor"></p>
-          <div class="book-modal-meta" id="bookModalCategory"></div>
-        </div>
-      </div>
-
-      <div class="book-modal-body">
-        <p id="bookModalDescription"></p>
-        <div class="book-modal-tags" id="bookModalTags"></div>
-      </div>
-
-      <div class="modal-actions">
-        <a
-          id="bookModalPdfButton"
-          class="modal-btn pdf-btn"
-          href="#"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <i class="fa-solid fa-file-pdf"></i>
-          Get PDF
-        </a>
-        <button
-          id="bookModalBookmarkButton"
-          class="modal-btn bookmark-btn"
-          type="button"
-        >
-          <i class="fa-regular fa-bookmark"></i>
-          Bookmark
-        </button>
-        <button
-          class="modal-btn secondary"
-          type="button"
-          data-close-modal="bookModal"
-        >
-          Close
-        </button>
-      </div>
     </div>
-  </div>
 
-  <!-- Advanced Search Modal -->
-  <div id="searchModal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-dialog">
-      <button class="modal-close" type="button" data-close-modal="searchModal">
-        <i class="fa-solid fa-xmark"></i>
+    <div id="sortControls" class="hidden">
+      <span id="sortLabel">Sort:</span>
+      <button class="sort-btn active" data-sort="relevance" title="Sort by relevance">
+        <i class="fa-solid fa-bullseye"></i>
       </button>
+      <button class="sort-btn" data-sort="title" title="Sort by title">
+        <i class="fa-solid fa-font"></i>
+      </button>
+      <button class="sort-btn" data-sort="author" title="Sort by author">
+        <i class="fa-solid fa-user-pen"></i>
+      </button>
+      <button class="sort-btn" data-sort="category" title="Sort by category">
+        <i class="fa-solid fa-layer-group"></i>
+      </button>
+    </div>
 
-      <h2 class="search-overlay-title">Advanced Search</h2>
+    <div id="resultsInfo"></div>
+  </section>
 
-      <div class="search-overlay-fields">
-        <label>
-          Title
-          <input id="advancedTitleInput" type="text" />
-        </label>
-        <label>
-          Author
-          <input id="advancedAuthorInput" type="text" />
-        </label>
-        <label>
-          Tags
-          <input
-            id="advancedTagsInput"
-            type="text"
-            placeholder="comma separated"
-          />
-        </label>
-      </div>
+  <!-- CATEGORY BUTTON ROW -->
+  <section id="categories">
+    <button class="category-btn active" data-category="all">All</button>
+    <button class="category-btn" data-category="bookmarked">Bookmarked</button>
+    <button class="category-btn" data-category="Mahabharat">Mahabharat</button>
+    <button class="category-btn" data-category="Fiction">Fiction</button>
+    <button class="category-btn" data-category="History">History</button>
+    <button class="category-btn" data-category="Geeta">Geeta</button>
+  </section>
 
-      <div class="search-overlay-actions">
-        <button
-          id="advancedClearButton"
-          class="modal-btn secondary"
-          type="button"
-        >
-          Clear
+  <!-- BOOKS GRID -->
+  <section id="all-books">
+
+    <!-- Pagination controls -->
+    <div id="paginationControls" class="pagination hidden">
+      <button id="prevPage" type="button">
+        <i class="fa-solid fa-angle-left"></i>
+      </button>
+      <span id="pageInfo"></span>
+      <button id="nextPage" type="button">
+        <i class="fa-solid fa-angle-right"></i>
+      </button>
+    </div>
+
+    <div id="booksContainer" class="books-grid"></div>
+
+    <!-- BOOK DETAILS MODAL -->
+    <div id="bookModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
         </button>
-        <button
-          id="advancedApplyButton"
-          class="modal-btn"
-          type="button"
-        >
-          Apply
-        </button>
+        <div class="modal-body"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Mobile Bottom Nav -->
-  <nav class="mobile-bottom-nav">
-    <button id="navHome" class="nav-active" type="button">
-      <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
-    </button>
-    <button id="navSearch" type="button">
-      <span class="nav-icon"><i class="fa-solid fa-magnifying-glass"></i></span>
-    </button>
-    <button id="navBookmarks" type="button">
-      <span class="nav-icon"><i class="fa-regular fa-bookmark"></i></span>
-    </button>
-  </nav>
+    <!-- CATEGORY SELECT MODAL (for bottom nav "Categories") -->
+    <div id="categoryModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog category-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body">
+          <h3>Select category</h3>
+          <div id="categoryList" class="category-list"></div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-  <footer>
-    Powered by your neon library
-  </footer>
+</main>
 
-  <!-- Main JS -->
-  <script src="js/app.js"></script>
+<footer>
+  <p>© 2025 Library of TheGopal.com</p>
+</footer>
+
+<!-- Android-style bottom navigation (icons only) -->
+<nav id="mobileBottomNav" class="mobile-bottom-nav">
+  <button data-nav="home" title="Home">
+    <i class="fa-solid fa-house nav-icon"></i>
+  </button>
+  <button data-nav="bookmarks" title="Saved">
+    <i class="fa-solid fa-bookmark nav-icon"></i>
+  </button>
+  <button data-nav="categories" title="Categories">
+    <i class="fa-solid fa-layer-group nav-icon"></i>
+  </button>
+  <button data-nav="search" title="Search">
+    <i class="fa-solid fa-magnifying-glass nav-icon"></i>
+  </button>
+</nav>
+
+
+<script src="js/app.js"></script>
+
+
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js");
+  });
+}
+</script>
 </body>
 </html>
