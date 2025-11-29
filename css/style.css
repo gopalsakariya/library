@@ -1,6 +1,6 @@
-/* ============================================
+/* =====================================================
    RESET + BASE
-============================================ */
+===================================================== */
 
 *,
 *::before,
@@ -14,13 +14,58 @@ body {
   padding: 0;
 }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter",
-    sans-serif;
+/* Remove default link styles for whole app */
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Scrollbar styling for a more app-like feel */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
   background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
+}
+
+/* Base body and app container */
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.16), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 55%),
+    #020617;
   color: #e5e7eb;
   min-height: 100vh;
 }
+
+body {
+  margin-top: 0.4rem;
+  overflow-y: auto;
+}
+
+body {
+    font-size: 0.78rem;
+  }
 
 /* Utility */
 .hidden {
@@ -33,9 +78,17 @@ body.popup-open .mobile-bottom-nav {
   display: none !important;
 }
 
-/* ============================================
+/* =====================================================
    HEADER
-============================================ */
+===================================================== */
+
+.mobile-bottom-nav {
+  display: none !important;
+}
+
+/* =====================================================
+   HEADER
+===================================================== */
 
 header {
   position: sticky;
@@ -45,117 +98,142 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 1.25rem;
-  background: rgba(15, 23, 42, 0.96);
-  border-bottom: 1px solid #111827;
+  background:
+    linear-gradient(to right, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.9)),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.18), transparent 60%);
+  border-bottom: 1px solid rgba(56, 189, 248, 0.55);
   backdrop-filter: blur(14px);
+}
+
+.header-hidden {
+  transform: translateY(-100%);
+  transition: transform 0.25s ease;
 }
 
 header h1 {
   margin: 0;
-  font-size: 1.1rem;
-  letter-spacing: 0.06em;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Title / logo row */
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.header-logo {
+  font-size: 1.3rem;
+}
+
+/* App "badge" (Library) next to title */
+
+.header-badge {
+  font-size: 0.7rem;
   text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(37, 99, 235, 0.35);
+  background: rgba(15, 23, 42, 0.78);
+  color: #93c5fd;
 }
 
-header p {
-  margin: 0;
-  font-size: 0.78rem;
-  color: #9ca3af;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-}
-
-.logo-circle {
-  width: 36px;
-  height: 36px;
-  border-radius: 12px;
-  background: radial-gradient(circle at 20% 0, #22d3ee 0, #0f172a 45%, #000 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
-}
-
+/* Header right controls */
 .header-actions {
   display: flex;
-  gap: 0.5rem;
   align-items: center;
+  gap: 0.5rem;
 }
 
-/* Theme toggle icon (no light mode logic, just icon) */
-.theme-toggle {
-  border-radius: 999px;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.9);
+/* stats pill on desktop */
+.header-inline-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
   color: #9ca3af;
-  display: flex;
+}
+
+.header-inline-stat-pill {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.theme-toggle:hover {
-  border-color: #22d3ee;
-  color: #22d3ee;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
-}
-
-/* ============================================
-   MAIN LAYOUT
-============================================ */
-
-main {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1.2rem 1.25rem 4.5rem;
-}
-
-/* ============================================
-   SEARCH BAR + CONTROLS
-============================================ */
-
-.top-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-/* search area wrapper */
-#search {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-/* search bar row: input + buttons */
-#searchBar {
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-}
-
-/* search pill */
-#searchInputWrapper {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.75rem;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
   border-radius: 999px;
   background: #020617;
   border: 1px solid #1f2937;
-  box-shadow: 0 0 0 1px #020617;
 }
 
-#searchIcon {
-  font-size: 0.9rem;
-  color: #22d3ee;
+.header-inline-stat-pill .icon {
+  margin-right: 0.08rem;
+}
+
+/* Theme toggle */
+
+.theme-toggle {
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.7);
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.22), transparent 60%),
+    #020617;
+  color: #e5e7eb;
+  padding: 0.3rem 0.8rem;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.9), 0 0 18px rgba(56, 189, 248, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.theme-toggle:hover {
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.55);
+  transform: translateY(-1px);
+}
+
+/* light mode */
+body:not(.dark) header {
+  background: rgba(255, 255, 255, 0.98);
+  border-bottom-color: #e5e7eb;
+}
+
+body:not(.dark) .theme-toggle {
+  background: #ffffff;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+main {
+  padding-top: 0.75rem;
+}
+
+/* =====================================================
+   SEARCH
+===================================================== */
+
+#search {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 0.75rem;
+  padding: 0 1rem;
+}
+
+#searchBar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background:
+    radial-gradient(circle at left, rgba(56, 189, 248, 0.18), transparent 55%),
+    #020617;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.45);
+  box-shadow: 0 0 22px rgba(15, 23, 42, 0.9);
+  padding: 0.35rem 0.55rem;
 }
 
 #searchInput {
@@ -163,339 +241,404 @@ main {
   border: none;
   outline: none;
   background: transparent;
-  color: #e5e7eb;
+  color: inherit;
   font-size: 0.9rem;
+  padding: 0.45rem 0.85rem;
 }
 
 #searchInput::placeholder {
   color: #6b7280;
 }
 
-/* clear search button inside pill */
+#searchButton,
 #clearSearchButton {
-  border: none;
-  background: none;
-  color: #9ca3af;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-#clearSearchButton:hover {
-  color: #f97373;
-}
-
-/* advanced search button (outside pill) */
-#advancedSearchButton {
   border-radius: 999px;
-  padding: 0.5rem 0.85rem;
-  font-size: 0.8rem;
-  border: 1px solid #4b5563;
-  background: #020617;
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 55%),
+    #020617;
   color: #e5e7eb;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
   cursor: pointer;
-}
-
-#advancedSearchButton i {
-  font-size: 0.8rem;
-}
-
-#advancedSearchButton:hover {
-  border-color: #22d3ee;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
-}
-
-/* Category row and sort row */
-
-#controlsRow {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-/* Categories row: all category buttons shown inline */
-#categoriesRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-}
-
-/* category pill buttons */
-.category-pill {
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid #4b5563;
-  background: #020617;
-  color: #e5e7eb;
   font-size: 0.85rem;
-  cursor: pointer;
+  box-shadow: 0 0 18px rgba(15, 23, 42, 0.9);
 }
 
-.category-pill:hover {
-  border-color: #22d3ee;
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6);
+#searchButton:hover,
+#clearSearchButton:hover {
+  box-shadow: 0 0 26px rgba(56, 189, 248, 0.55);
+  transform: translateY(-1px);
 }
 
-.category-pill.active {
-  border-color: #22d3ee;
-  background: #0b1120;
-  box-shadow:
-    0 0 12px rgba(34, 211, 238, 0.7),
-    0 0 24px rgba(15, 23, 42, 0.9);
+/* light mode */
+body:not(.dark) #searchBar {
+  background: #ffffff;
+  border-color: #e5e7eb;
 }
 
-/* stats + sort row */
-#statsSortRow {
+body:not(.dark) #searchInput {
+  color: #111827;
+}
+
+body:not(.dark) #searchInput::placeholder {
+  color: #9ca3af;
+}
+
+body:not(.dark) #searchButton,
+body:not(.dark) #clearSearchButton {
+  background: #111827;
+  color: #f9fafb;
+}
+
+/* Search meta text (results count + active filters chip row) */
+
+#searchMeta {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0.15rem auto 0.6rem;
+  padding: 0 1rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+}
+
+#resultsInfo {
+  color: #9ca3af;
+}
+
+body:not(.dark) #resultsInfo {
+  color: #6b7280;
+}
+
+/* =====================================================
+   CATEGORY BUTTON ROW
+===================================================== */
+
+#categories {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 0.5rem;
+  padding: 0 1rem;
+}
+
+#categoryButtons {
+  display: flex;
   flex-wrap: wrap;
+  gap: 0.35rem;
 }
 
-#stats {
-  font-size: 0.8rem;
-  color: #9ca3af;
+/* Category tags for search bar overlay (chips) */
+
+.filter-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.3rem;
 }
 
-/* sort select */
-#sortWrapper {
-  font-size: 0.82rem;
-  color: #9ca3af;
+.filter-chip {
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: rgba(15, 23, 42, 0.96);
+  color: #e5e7eb;
+  font-size: 0.7rem;
+}
+
+/* =====================================================
+   FILTER BAR (SORT, VIEW)
+===================================================== */
+
+#filterBar {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 0.5rem;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+#filterBarLeft {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-}
-
-#sortSelect {
-  border-radius: 999px;
-  padding: 0.3rem 0.65rem;
-  border: 1px solid #4b5563;
-  background: #020617;
-  color: #e5e7eb;
   font-size: 0.8rem;
 }
 
-/* ============================================
-   BOOK GRID
-============================================ */
-
-#booksSection {
-  margin-top: 1.3rem;
+#sortLabel {
+  margin-right: 0.25rem;
+  color: #9ca3af;
 }
 
-/* grid container */
-#booksGrid {
+.sort-btn {
+  border-radius: 999px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background:
+    radial-gradient(circle at top, rgba(129, 140, 248, 0.18), transparent 60%),
+    #020617;
+  color: #e5e7eb;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  box-shadow: 0 0 14px rgba(15, 23, 42, 0.9);
+}
+
+.sort-btn.active {
+  background: linear-gradient(120deg, #22d3ee, #a855f7);
+  border-color: rgba(56, 189, 248, 0.9);
+  color: #0b1120;
+  box-shadow: 0 0 26px rgba(94, 234, 212, 0.65);
+}
+
+.sort-btn:hover {
+  opacity: 0.9;
+}
+
+/* light mode */
+body:not(.dark) .sort-btn {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* View toggle (All / Bookmarks / History) */
+#viewTabs {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.view-tab {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #9ca3af;
+  padding: 0.24rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.view-tab.active {
+  border-color: #6366f1;
+  background: rgba(79, 70, 229, 0.15);
+  color: #c7d2fe;
+}
+
+/* light mode */
+body:not(.dark) .view-tab {
+  color: #6b7280;
+}
+
+body:not(.dark) .view-tab.active {
+  border-color: #111827;
+  background: #111827;
+  color: #f9fafb;
+}
+
+/* =====================================================
+   MAIN GRID & LAYOUT
+===================================================== */
+
+#booksSection {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 1.25rem;
+  padding: 0 1rem;
+}
+
+/* Book grid itself */
+
+#booksGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 1rem;
 }
 
-/* single card */
+/* =====================================================
+   BOOK CARD (UNIFORM HEIGHT)
+===================================================== */
+
 .book-card {
   width: 230px;
   padding: 0.9rem;
-  border-radius: 18px;
-  background: #020617;
-  border: 1px solid #1f2937;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.7);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.14), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.16), transparent 55%),
+    #020617;
+  border: 1px solid rgba(15, 23, 42, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(15, 23, 42, 0.95),
+    0 18px 40px rgba(15, 23, 42, 0.95);
   position: relative;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background 0.18s ease;
   display: flex;
   flex-direction: column;
   min-height: 330px;
 }
 
-/* neon glow on hover – size unchanged */
 .book-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.9),
-    0 0 18px rgba(34, 211, 238, 0.55);
-  border-color: #22d3ee;
+  box-shadow:
+    0 0 32px rgba(56, 189, 248, 0.35),
+    0 22px 46px rgba(15, 23, 42, 0.98);
+  border-color: rgba(56, 189, 248, 0.85);
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.24), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.25), transparent 55%),
+    #020617;
 }
 
-/* cover */
-.book-cover {
-  height: 170px;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 0.6rem;
-  border: 1px solid #000;
+/* light mode */
+body:not(.dark) .book-card {
+  background: #ffffff;
+  border-color: #e5e7eb;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.1);
 }
 
-.book-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
+/* Bookmark button */
 
-/* text info */
-.book-title {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-
-.book-author {
-  margin: 0.15rem 0 0.2rem;
-  font-size: 0.82rem;
-  color: #9ca3af;
-}
-
-.book-category-label {
-  font-size: 0.75rem;
-  color: #a5b4fc;
-}
-
-/* tags list */
-.book-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin-top: 0.4rem;
-}
-
-.tag-chip {
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: #111827;
-  font-size: 0.75rem;
-  color: #e5e7eb;
-}
-
-/* book links (footer buttons) */
-.book-links {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 0.7rem;
-}
-
-.book-links a {
-  flex: 1 1 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  text-align: center;
-  text-decoration: none;
-  font-size: 0.8rem;
-  padding: 0.5rem 0.7rem;
-  border-radius: 999px;
-  border: none;
-  background: #111827;
-  color: #e5e7eb;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.85);
-}
-
-/* Neon Get PDF button in card footer */
-.book-links a.pdf-link {
-  border: 1px solid #22d3ee;
-  background: #022c3a;
-  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
-}
-
-.book-links a.pdf-link:hover {
-  box-shadow: 0 0 20px rgba(34, 211, 238, 0.7);
-}
-
-/* bookmark icon in card top-right */
-.bookmark-toggle {
+.bookmark-btn {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 30px;
-  height: 30px;
+  font-size: 1.1rem;
   border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: rgba(15, 23, 42, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #9ca3af;
+  border: 1px solid rgba(15, 23, 42, 0.9);
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.4), transparent 55%),
+    #020617;
+  color: #e5e7eb;
+  padding: 0.1rem 0.5rem;
   cursor: pointer;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.85);
+  z-index: 2;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.55);
 }
 
-.bookmark-toggle:hover {
-  border-color: #22d3ee;
-  color: #22d3ee;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
+.bookmark-btn.bookmarked {
+  color: #fbbf24;
 }
 
-/* ============================================
-   EMPTY STATE
-============================================ */
+/* Cover */
+
+.book-cover {
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: fill;
+  border-radius: 12px;
+  background: #020617;
+}
+
+/* Info area flex: grow to fill card */
+.book-info {
+  flex: 1 1 auto;
+  display: flex;
+  
+  flex-direction: column;
+  margin-top: 0.55rem;
+}
+
+/* Category label */
+.book-category {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9ca3af;
+  margin-bottom: 0.2rem;
+}
+
+/* Title */
+.book-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 0.1rem;
+}
+
+/* Author */
+.book-author {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 0.35rem;
+}
+
+/* Description snippet */
+.book-description {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  flex: 1 1 auto;
+  margin-bottom: 0.4rem;
+}
+
+/* Tags row (year / publisher / etc.) */
+.book-tags {
+  font-size: 0.72rem;
+  color: #6b7280;
+}
+
+/* =====================================================
+   EMPTY / NO RESULTS
+===================================================== */
 
 #emptyState {
-  margin-top: 1.2rem;
-  padding: 1rem;
-  border-radius: 16px;
-  border: 1px dashed #374151;
   text-align: center;
-  font-size: 0.85rem;
+  margin: 3rem 0;
   color: #9ca3af;
-  background: rgba(15, 23, 42, 0.7);
 }
 
-/* reset filters button */
-#resetFiltersButton {
-  margin-top: 0.5rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid #4b5563;
-  background: transparent;
-  color: #e5e7eb;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-
-#resetFiltersButton:hover {
-  border-color: #22d3ee;
-  box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
-}
-
-/* ============================================
+/* =====================================================
    PAGINATION
-============================================ */
+===================================================== */
 
 #pagination {
-  margin-top: 1.1rem;
+  width: 100%;
+  max-width: 1100px;
+  margin: 1rem auto 2rem;
+  padding: 0 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.4rem;
   font-size: 0.8rem;
-  color: #9ca3af;
 }
 
-#pagination button {
-  padding: 0.35rem 0.85rem;
+.page-btn {
+  min-width: 2rem;
+  height: 2rem;
   border-radius: 999px;
-  border: 1px solid #4b5563;
+  border: 1px solid #374151;
   background: #020617;
   color: #e5e7eb;
-  font-size: 0.8rem;
   cursor: pointer;
 }
 
-#pagination button:disabled {
+.page-btn.active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #f9fafb;
+}
+
+.page-btn[disabled] {
   opacity: 0.4;
   cursor: default;
 }
 
-#pagination button:hover:not(:disabled) {
-  border-color: #22d3ee;
-  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6);
+/* light mode */
+body:not(.dark) .page-btn {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
 }
 
-/* ============================================
-   MODALS – BASE
-============================================ */
+/* =====================================================
+   SEARCH OVERLAY (FULL-SCREEN QUICK SEARCH)
+===================================================== */
 
-.modal {
+#searchOverlay {
   position: fixed;
   inset: 0;
   z-index: 80;
@@ -504,214 +647,409 @@ main {
   justify-content: center;
 }
 
-.modal.show {
+#searchOverlay.visible {
   display: flex;
 }
 
-.modal-overlay {
-  position: absolute;
+#searchOverlayBackdrop {
+  position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+/* Search panel */
+
+#searchOverlayPanel {
+  position: relative;
+  z-index: 1;
+  width: min(700px, 92vw);
+  max-height: 80vh;
+  background: #020617;
+  border-radius: 18px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.95);
+  padding: 0.8rem 0.9rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Close button top right */
+#searchOverlayClose {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.4rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+/* Big search input row inside overlay */
+#searchOverlayInputRow {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid #1f2937;
+  background: #020617;
+  margin-bottom: 0.5rem;
+}
+
+#searchOverlayInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.7rem;
+}
+
+#searchOverlayInput::placeholder {
+  color: #6b7280;
+}
+
+/* Overlay chip row for frequent filters */
+#searchOverlayChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Search suggestions or quick results list */
+#searchOverlayResults {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-top: 0.25rem;
+}
+
+/* Individual suggestion row */
+.search-overlay-result-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  padding: 0.4rem 0.35rem;
+  border-radius: 0.65rem;
+  cursor: pointer;
+}
+
+.search-overlay-result-item:hover {
+  background: #020617;
+}
+
+.search-overlay-title {
+  font-size: 0.86rem;
+}
+
+.search-overlay-meta {
+  font-size: 0.7rem;
+  color: #9ca3af;
+}
+
+/* =====================================================
+   BOOK MODAL
+===================================================== */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+}
+
+/* visible state */
+.modal.visible {
+  display: flex;
+}
+
+/* overlay */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(14px);
 }
 
 /* dialog */
 .modal-dialog {
   position: relative;
-  z-index: 81;
-  width: min(520px, 92%);
-  max-height: 86vh;
-  overflow-y: auto;
-  border-radius: 20px;
-  background: radial-gradient(circle at top, #020617 0, #020617 60%, #000 100%);
-  border: 1px solid #1f2937;
+  z-index: 1;
+  width: auto;
+  max-width: min(700px, 95vw);
+  max-height: 90vh;
+  background:
+    radial-gradient(circle at top left, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 55%),
+    #020617;
+  border-radius: 16px;
+  border: 1px solid rgba(15, 23, 42, 0.95);
   box-shadow:
-    0 24px 70px rgba(0, 0, 0, 0.95),
-    0 0 28px rgba(34, 211, 238, 0.4);
-  padding: 1.4rem 1.3rem 1.1rem;
+    0 0 0 1px rgba(15, 23, 42, 0.95),
+    0 26px 60px rgba(15, 23, 42, 0.98);
+  padding: 0.9rem 0.9rem 0.8rem;
+  display: flex;
+  flex-direction: column;
 }
 
-/* close button */
+body:not(.dark) .modal-dialog {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+/* modal close button */
 .modal-close {
   position: absolute;
-  top: 8px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: #020617;
+  top: 0.45rem;
+  right: 0.5rem;
+  border: none;
+  background: transparent;
   color: #9ca3af;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
 }
 
-.modal-close:hover {
-  border-color: #22d3ee;
-  color: #22d3ee;
-}
-
-/* ============================================
-   BOOK DETAIL MODAL
-============================================ */
-
-.book-modal-header {
+/* modal content layout */
+.modal-content {
   display: flex;
+  flex-direction: row;
   gap: 0.9rem;
 }
 
-.book-modal-cover {
-  width: 110px;
-  height: 160px;
+/* modal image */
+.modal-cover {
+  width: 170px;
   border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #000;
-  box-shadow:
-    0 0 24px rgba(0, 0, 0, 0.9),
-    0 0 18px rgba(34, 211, 238, 0.4);
 }
 
-.book-modal-cover img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.book-modal-main {
-  flex: 1;
-}
-
-.book-modal-main h2 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.book-modal-main .book-author {
-  margin-top: 0.2rem;
-}
-
-.book-modal-meta {
-  margin-top: 0.35rem;
-  font-size: 0.78rem;
-  color: #a5b4fc;
-}
-
-/* description and tags */
-.book-modal-body {
-  margin-top: 0.75rem;
-  font-size: 0.86rem;
-  color: #d1d5db;
-  line-height: 1.5;
-}
-
-.book-modal-tags {
-  margin-top: 0.75rem;
-}
-
-/* Modal actions */
-.modal-actions {
+/* modal text area */
+.modal-main {
+  flex: 1 1 auto;
   display: flex;
-  gap: 0.6rem;
-  margin-top: 1rem;
+  flex-direction: column;
+}
+
+/* modal top meta row */
+.modal-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+/* Category pill in modal */
+.modal-category-pill {
+  border-radius: 999px;
+  border: 1px solid #374151;
+  padding: 0.2rem 0.6rem;
+}
+
+/* modal title */
+.modal-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+/* modal author */
+.modal-author {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 0.3rem;
+}
+
+/* modal description */
+.modal-description {
+  font-size: 0.8rem;
+  color: #e5e7eb;
+  margin-bottom: 0.45rem;
+}
+
+/* Tags / meta info list */
+.modal-tags {
+  font-size: 0.75rem;
+  color: #9ca3af;
   margin-bottom: 0.5rem;
 }
 
-/* base style for modal buttons */
-.modal-btn {
-  flex: 1 1 0;
-  text-align: center;
-  text-decoration: none;
-  font-size: 0.82rem;
-  padding: 0.55rem 1rem;
+/* modal bottom actions */
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* Bookmark button inside modal */
+.modal-bookmark-btn {
   border-radius: 999px;
-  border: none;
-  background: #111827;
-  color: #e5e7eb;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.3rem;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.9);
-}
-
-/* modal close button (secondary) */
-.modal-btn.secondary {
-  background: #374151;
-}
-
-/* Modal Get PDF button (left side, neon style) */
-.modal-btn.pdf-btn {
-  border: 1px solid #22d3ee;
-  background: #022c3a;
-  box-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
-}
-
-/* bookmark button with slight neon glow on hover */
-.modal-btn.bookmark-btn:hover {
-  box-shadow: 0 0 18px rgba(34, 211, 238, 0.45);
-}
-
-/* ============================================
-   SEARCH OVERLAY MODAL
-============================================ */
-
-.search-overlay-title {
-  margin: 0 0 0.75rem;
-  font-size: 1rem;
-}
-
-.search-overlay-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.search-overlay-fields label {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.search-overlay-fields input {
-  border-radius: 10px;
   border: 1px solid #374151;
   background: #020617;
   color: #e5e7eb;
-  padding: 0.45rem 0.6rem;
-  font-size: 0.85rem;
-}
-
-.search-overlay-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-}
-
-.search-overlay-actions button {
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
   font-size: 0.8rem;
-  padding-inline: 0.9rem;
 }
 
-/* ============================================
-   ANDROID-STYLE BOTTOM NAV
-============================================ */
+/* =====================================================
+   STATS / INSIGHTS PANEL
+===================================================== */
+
+#statsPanel {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto 1.3rem;
+  padding: 0 1rem;
+  display: flex;
+  align-items: stretch;
+  gap: 0.8rem;
+}
+
+/* Stats card on left */
+
+#statsSummary {
+  flex: 1 1 0;
+  border-radius: 1rem;
+  background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 55%), #020617;
+  border: 1px solid #1f2937;
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.9);
+  padding: 0.7rem 0.75rem;
+}
+
+#statsSummary h2 {
+  font-size: 0.92rem;
+  margin: 0 0 0.45rem;
+}
+
+/* Stats grid inside stats summary */
+.stats-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* One stat pill */
+.stat-pill {
+  min-width: 0;
+  flex: 1 1 90px;
+  border-radius: 999px;
+  border: 1px dashed #374151;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.72rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Right side: quick filters */
+#quickFilters {
+  flex: 1 1 0;
+  border-radius: 1rem;
+  background: #020617;
+  border: 1px solid #1f2937;
+  box-shadow: 0 16px 35px rgba(15, 23, 42, 0.9);
+  padding: 0.7rem 0.75rem;
+}
+
+/* quick filter tags */
+.quick-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.3rem;
+}
+
+/* quick filter pill */
+.quick-filter-pill {
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.quick-filter-pill:hover {
+  opacity: 0.9;
+}
+
+/* light mode */
+body:not(.dark) #statsSummary,
+body:not(.dark) #quickFilters {
+  background: #ffffff;
+  border-color: #e5e7eb;
+}
+
+/* =====================================================
+   CATEGORY LIST (SCROLLABLE CHIPS BELOW STATS)
+===================================================== */
+
+#categoryList {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0.2rem auto 0.7rem;
+  padding: 0 1rem;
+}
+
+#categoryChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.category-pill {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(31, 41, 55, 0.9);
+  background:
+    radial-gradient(circle at top, rgba(129, 140, 248, 0.18), transparent 60%),
+    #020617;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(15, 23, 42, 0.9);
+}
+
+.category-pill:hover {
+  opacity: 0.9;
+}
+
+body:not(.dark) .category-pill {
+  background: #f9fafb;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+/* ==========================
+   MOBILE BOTTOM NAV
+========================== */
+
+/* Hidden on desktop; turned on under media query later */
+.mobile-bottom-nav {
+  display: none !important;
+}
+
+/* Actual nav styling used on mobile */
 
 .mobile-bottom-nav {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
   height: 60px;
-  background: rgba(15, 23, 42, 0.97);
-  border-top: 1px solid #1f2937;
+  background:
+    radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 55%),
+    rgba(15, 23, 42, 0.97);
+  border-top: 1px solid rgba(56, 189, 248, 0.45);
   display: none;
   justify-content: space-around;
   align-items: center;
   backdrop-filter: blur(10px);
+  box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.95);
   z-index: 70;
 }
 
@@ -722,7 +1060,7 @@ main {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #22d3ee; /* neon color */
+  color: #cbd5f5;
 }
 
 .nav-icon {
@@ -730,59 +1068,123 @@ main {
   line-height: 1;
 }
 
-/* active nav item – neon glow */
+/* active nav item */
 .mobile-bottom-nav button.nav-active {
-  background: #020617;
+  background: linear-gradient(120deg, #22d3ee, #a855f7);
   border-radius: 999px;
   padding: 0.25rem 0.9rem;
-  color: #22d3ee;
-  box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
+  color: #0b1120;
+  box-shadow: 0 0 22px rgba(56, 189, 248, 0.55);
 }
 
-/* ============================================
-   FOOTER
-============================================ */
-
-footer {
-  padding: 1rem;
-  text-align: center;
-  font-size: 0.8rem;
-  color: #6b7280;
+/* light mode */
+body:not(.dark) .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.97);
+  border-top-color: #e5e7eb;
 }
 
-/* ============================================
-   RESPONSIVE (LAYOUT ONLY, NOT SIZES)
-============================================ */
+body:not(.dark) .mobile-bottom-nav button {
+  color: #4b5563;
+}
+
+body:not(.dark) .mobile-bottom-nav button.nav-active {
+  background: #111827;
+  color: #f9fafb;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
 
 @media (max-width: 900px) {
-  #booksGrid {
-    justify-content: center;
+  /* stack stats panel */
+  #statsPanel {
+    flex-direction: column;
   }
 }
 
 @media (max-width: 768px) {
   header {
-    padding: 0.6rem 0.75rem;
+    padding-inline: 0.8rem;
   }
 
-  header h1 {
-    font-size: 1.05rem;
+  #search {
+    padding-inline: 0.8rem;
   }
 
-  main {
-    padding-inline: 0.75rem;
-    padding-bottom: 4.5rem;
+  #searchMeta,
+  #categories,
+  #filterBar,
+  #booksSection,
+  #pagination,
+  #statsPanel,
+  #categoryList {
+    padding-inline: 0.8rem;
   }
 
-  .book-modal-header {
-    flex-direction: column;
+  /* Hide inline stats in header, use mobile bottom nav instead */
+  .header-inline-stats {
+    display: none;
   }
 
   .mobile-bottom-nav {
     display: flex;
   }
 
-  footer {
-    margin-bottom: 70px;
+  /* main content padding bottom to not be hidden behind nav */
+  body {
+    padding-bottom: 3.5rem;
+  }
+
+  #booksGrid {
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  }
+
+  .modal-dialog {
+    max-width: 95vw;
+  }
+
+  .modal-content {
+    flex-direction: column;
+  }
+
+  .modal-cover {
+    width: 100%;
+    max-width: 220px;
+    align-self: center;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1rem;
+  }
+
+  .header-badge {
+    display: none;
+  }
+
+  #searchBar {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  #filterBar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #viewTabs {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  #booksGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .book-card {
+    width: 100%;
   }
 }
