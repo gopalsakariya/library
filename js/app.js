@@ -13,7 +13,7 @@ const books = [];
 /* Cover helper: supports URLs and local paths */
 function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
-  if (!cover) return "img/book.jpg"; // default fallback
+  if (!cover) return "img/book.jpg";
   if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
   return cover; // treat as relative/local path (e.g. img/book1.png)
 }
@@ -70,10 +70,7 @@ function mapRowToBook(row) {
     : [];
 
   // direct URL for PDF (Cloudflare R2, etc.)
-  const pdfurl = (row.pdfurl || row.pdf || row.url || "").trim();
-
-  const viewLink = pdfurl || "#";
-  const downloadLink = pdfurl || "#";
+  const pdfUrl = (row.pdfurl || row.pdf || row.url || "").trim();
 
   const cover = getCoverPath(row.cover);
 
@@ -84,8 +81,7 @@ function mapRowToBook(row) {
     description,
     details,
     tags,
-    viewLink,
-    downloadLink,
+    pdfUrl,
     cover
   };
 }
@@ -408,7 +404,7 @@ function getFilteredBooks() {
 }
 
 /* ============================================
-   10. POPUPS / MODALS & BACK HANDLING
+   10. POPUP / MODALS & BACK HANDLING
 ============================================ */
 
 function isAnyPopupOpen() {
@@ -469,19 +465,12 @@ function openBookModal(book) {
     }
 
     <div class="modal-section modal-actions">
-      <a href="${book.viewLink}"
+      <a href="${book.pdfUrl || "#"}"
          target="_blank"
          rel="noopener noreferrer"
-         class="modal-btn"
-         data-role="view-link">
+         class="modal-btn">
          <i class="fa-solid fa-file-pdf"></i>
          <span>Get PDF</span>
-      </a>
-      <a href="#"
-         class="modal-btn"
-         data-download="${book.downloadLink}">
-         <i class="fa-solid fa-download"></i>
-         <span>Download</span>
       </a>
     </div>
   `;
@@ -766,23 +755,16 @@ function renderBooks() {
       </div>
 
       <div class="book-links">
-        <a href="${book.viewLink}"
+        <a href="${book.pdfUrl || "#"}"
            target="_blank"
-           rel="noopener noreferrer"
-           data-role="view-link">
+           rel="noopener noreferrer">
            <i class="fa-solid fa-file-pdf"></i>
            <span>Get PDF</span>
-        </a>
-        <a href="#"
-           data-download="${book.downloadLink}">
-           <i class="fa-solid fa-download"></i>
-           <span>Download</span>
         </a>
       </div>
     `;
 
     const imgEl = card.querySelector(".book-cover");
-
     imgEl.onload = () => {
       const w = imgEl.naturalWidth;
       const h = imgEl.naturalHeight;
@@ -802,29 +784,7 @@ function renderBooks() {
 }
 
 /* ============================================
-   12. DOWNLOAD HANDLER (NO NEW TAB)
-============================================ */
-
-function triggerDownload(url) {
-  if (!url || url === "#") return;
-  const a = document.createElement("a");
-  a.href = url;
-  a.setAttribute("download", "");
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
-document.addEventListener("click", e => {
-  const dlBtn = e.target.closest("[data-download]");
-  if (!dlBtn) return;
-  e.preventDefault();
-  const url = dlBtn.dataset.download;
-  triggerDownload(url);
-});
-
-/* ============================================
-   13. SEARCH, CLEAR, SORT
+   12. SEARCH, CLEAR, SORT
 ============================================ */
 
 searchButton.addEventListener("click", () => {
@@ -856,7 +816,7 @@ sortButtons.forEach(btn => {
 });
 
 /* ============================================
-   14. PAGINATION CONTROLS
+   13. PAGINATION CONTROLS
 ============================================ */
 
 prevPageBtn.addEventListener("click", () => {
@@ -874,7 +834,7 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* ============================================
-   15. MOBILE BOTTOM NAV
+   14. MOBILE BOTTOM NAV
 ============================================ */
 
 mobileBottomNav.addEventListener("click", e => {
@@ -902,7 +862,7 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   16. INITIALIZE
+   15. INITIALIZE
 ============================================ */
 
 loadBooksFromSheet();
