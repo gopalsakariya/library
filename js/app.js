@@ -13,9 +13,61 @@ const books = [];
 /* Cover helper: supports URLs and local paths */
 function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
-  if (!cover) return "img/book.jpg";
+  if (!cover) return "";
   if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
   return cover; // treat as relative/local path (e.g. img/book1.png)
+}
+
+/* ============================================
+   PDF COVER RENDERING (first page)
+============================================ */
+
+const pdfCoverCache = new Map(); // pdfUrl -> dataURL
+
+async function renderPdfFirstPageToImage(pdfUrl) {
+  if (!pdfUrl || pdfUrl === "#") return null;
+
+  // Cache to avoid reloading same PDF
+  if (pdfCoverCache.has(pdfUrl)) {
+    return pdfCoverCache.get(pdfUrl);
+  }
+
+  try {
+    if (typeof pdfjsLib === "undefined") {
+      console.warn("pdfjsLib not found; PDF covers disabled.");
+      return null;
+    }
+
+    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+    }
+
+    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    const pdf = await loadingTask.promise;
+    const page = await pdf.getPage(1);
+
+    // smaller scale = faster render
+    const scale = 0.4;
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("2d");
+
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+
+    await page.render({
+      canvasContext: context,
+      viewport
+    }).promise;
+
+    const dataUrl = canvas.toDataURL("image/png");
+    pdfCoverCache.set(pdfUrl, dataUrl);
+    return dataUrl;
+  } catch (err) {
+    console.error("Failed to render PDF cover:", err);
+    return null;
+  }
 }
 
 /* ============================================
@@ -69,10 +121,9 @@ function mapRowToBook(row) {
     ? rawTags.split(",").map(t => t.trim()).filter(Boolean)
     : [];
 
-  // NEW: direct URL (Cloudflare R2 or any direct link)
+  // direct URL for PDF (Cloudflare R2 or any direct link)
   const pdfurl = (row.pdfurl || row.pdf || row.url || "").trim();
 
-  // For read & download we use the same URL
   const viewLink = pdfurl || "#";
   const downloadLink = pdfurl || "#";
 
@@ -87,7 +138,7 @@ function mapRowToBook(row) {
     tags,
     viewLink,
     downloadLink,
-    cover
+    cover // may be "" if not provided
   };
 }
 
@@ -429,7 +480,7 @@ function openBookModal(book) {
     history.pushState({ screen: "bookModal" }, "");
   }
 
-  const cover = book.cover || "img/book.jpg";
+  const initialCover = book.cover || "img/book.jpg";
 
   const tagChips =
     book.tags && book.tags.length
@@ -438,7 +489,7 @@ function openBookModal(book) {
 
   modalBody.innerHTML = `
     <div class="modal-book-header">
-      <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
+      <img class="modal-cover" src="${initialCover}" alt="" onerror="this.src='img/book.jpg';" />
       <div class="modal-book-main">
         <h3>${book.title}</h3>
         <p class="modal-author-category">
@@ -479,17 +530,24 @@ function openBookModal(book) {
          <i class="fa-solid fa-book-open"></i>
          <span>Read</span>
       </a>
-      <a href="${book.downloadLink}"
-         target="_blank"
-         rel="noopener noreferrer"
+      <a href="#"
          class="modal-btn"
-         download
-         data-role="download-link">
+         data-download="${book.downloadLink}">
          <i class="fa-solid fa-download"></i>
          <span>Download</span>
       </a>
     </div>
   `;
+
+  // Auto PDF cover if cover is empty AND pdf URL exists
+  if ((!book.cover || !book.cover.trim()) && book.viewLink && book.viewLink !== "#") {
+    const modalCoverEl = modalBody.querySelector(".modal-cover");
+    renderPdfFirstPageToImage(book.viewLink).then(dataUrl => {
+      if (dataUrl) {
+        modalCoverEl.src = dataUrl;
+      }
+    });
+  }
 
   bookModal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -750,7 +808,7 @@ function renderBooks() {
     card.className = "book-card";
 
     const starred = bookmarks.includes(book.title);
-    const cover = book.cover || "img/book.jpg";
+    const initialCover = book.cover || "img/book.jpg";
 
     card.innerHTML = `
       <button class="bookmark-btn" type="button"
@@ -759,7 +817,7 @@ function renderBooks() {
       </button>
 
       <img class="book-cover"
-           src="${cover}"
+           src="${initialCover}"
            alt=""
            onerror="this.src='img/book.jpg';" />
 
@@ -779,11 +837,8 @@ function renderBooks() {
            <i class="fa-solid fa-book-open"></i>
            <span>Read</span>
         </a>
-        <a href="${book.downloadLink}"
-           target="_blank"
-           rel="noopener noreferrer"
-           download
-           data-role="download-link">
+        <a href="#"
+           data-download="${book.downloadLink}">
            <i class="fa-solid fa-download"></i>
            <span>Download</span>
         </a>
@@ -791,6 +846,16 @@ function renderBooks() {
     `;
 
     const imgEl = card.querySelector(".book-cover");
+
+    // Auto PDF cover if no cover URL and PDF exists
+    if ((!book.cover || !book.cover.trim()) && book.viewLink && book.viewLink !== "#") {
+      renderPdfFirstPageToImage(book.viewLink).then(dataUrl => {
+        if (dataUrl) {
+          imgEl.src = dataUrl;
+        }
+      });
+    }
+
     imgEl.onload = () => {
       const w = imgEl.naturalWidth;
       const h = imgEl.naturalHeight;
@@ -810,7 +875,29 @@ function renderBooks() {
 }
 
 /* ============================================
-   12. SEARCH, CLEAR, SORT
+   12. DOWNLOAD HANDLER (NO NEW TAB)
+============================================ */
+
+function triggerDownload(url) {
+  if (!url || url === "#") return;
+  const a = document.createElement("a");
+  a.href = url;
+  a.setAttribute("download", "");
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+document.addEventListener("click", e => {
+  const dlBtn = e.target.closest("[data-download]");
+  if (!dlBtn) return;
+  e.preventDefault();
+  const url = dlBtn.dataset.download;
+  triggerDownload(url);
+});
+
+/* ============================================
+   13. SEARCH, CLEAR, SORT
 ============================================ */
 
 searchButton.addEventListener("click", () => {
@@ -842,7 +929,7 @@ sortButtons.forEach(btn => {
 });
 
 /* ============================================
-   13. PAGINATION CONTROLS
+   14. PAGINATION CONTROLS
 ============================================ */
 
 prevPageBtn.addEventListener("click", () => {
@@ -860,7 +947,7 @@ nextPageBtn.addEventListener("click", () => {
 });
 
 /* ============================================
-   14. MOBILE BOTTOM NAV
+   15. MOBILE BOTTOM NAV
 ============================================ */
 
 mobileBottomNav.addEventListener("click", e => {
@@ -888,7 +975,7 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   15. INITIALIZE
+   16. INITIALIZE
 ============================================ */
 
 loadBooksFromSheet();
