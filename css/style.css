@@ -1,37 +1,11 @@
-/* =====================================================
+/* ============================================
    RESET + BASE
-===================================================== */
+============================================ */
 
 *,
 *::before,
 *::after {
   box-sizing: border-box;
-}
-
-/* GAMER THEME VARIABLES */
-:root {
-  --bg-main: #020314;
-  --bg-elevated: #05081f;
-  --bg-elevated-soft: #070b24;
-
-  --accent-primary: #00f5ff;
-  --accent-secondary: #ff00ff;
-  --accent-tertiary: #00ff9d;
-
-  --border-soft: rgba(0, 245, 255, 0.28);
-  --border-strong: rgba(0, 245, 255, 0.8);
-
-  --text-main: #f9fbff;
-  --text-muted: #8b95c9;
-  --text-soft: #656f9a;
-
-  --card-glow: 0 0 24px rgba(0, 245, 255, 0.25);
-  --accent-glow: 0 0 34px rgba(255, 0, 255, 0.55);
-
-  --input-bg: #020518;
-  --input-border: rgba(0, 245, 255, 0.35);
-
-  --glass-bg: rgba(3, 6, 24, 0.92);
 }
 
 html,
@@ -41,25 +15,11 @@ body {
 }
 
 body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(0, 245, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.18), transparent 60%),
-    radial-gradient(circle at 10% 90%, rgba(0, 255, 157, 0.16), transparent 55%),
-    var(--bg-main);
-  color: var(--text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter",
+    sans-serif;
+  background: #020617;
+  color: #e5e7eb;
   min-height: 100vh;
-  text-shadow: 0 0 1px rgba(0, 0, 0, 0.8);
-}
-
-/* "Light mode" visually forced to gamer dark as well */
-body:not(.dark) {
-  background:
-    radial-gradient(circle at 0% 0%, rgba(0, 245, 255, 0.18), transparent 55%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.18), transparent 60%),
-    radial-gradient(circle at 10% 90%, rgba(0, 255, 157, 0.16), transparent 55%),
-    var(--bg-main);
-  color: var(--text-main);
 }
 
 /* Utility */
@@ -73,22 +33,9 @@ body.popup-open .mobile-bottom-nav {
   display: none !important;
 }
 
-/* Subtle custom scrollbar for gamer feel */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #020314;
-}
-::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #00f5ff, #ff00ff);
-  border-radius: 999px;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.8);
-}
-
-/* =====================================================
+/* ============================================
    HEADER
-===================================================== */
+============================================ */
 
 header {
   position: sticky;
@@ -98,97 +45,117 @@ header {
   align-items: center;
   justify-content: space-between;
   padding: 0.8rem 1.25rem;
-  background:
-    linear-gradient(120deg, rgba(0, 245, 255, 0.18), transparent 45%, rgba(255, 0, 255, 0.16)),
-    rgba(5, 7, 26, 0.96);
-  border-bottom: 1px solid var(--border-soft);
-  backdrop-filter: blur(18px);
-  box-shadow:
-    0 0 22px rgba(0, 0, 0, 0.9),
-    0 0 26px rgba(0, 245, 255, 0.35);
-}
-
-.header-hidden {
-  transform: translateY(-100%);
-  transition: transform 0.25s ease;
+  background: rgba(15, 23, 42, 0.96);
+  border-bottom: 1px solid #111827;
+  backdrop-filter: blur(14px);
 }
 
 header h1 {
   margin: 0;
-  font-size: 1.15rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--accent-primary);
+  font-size: 1.1rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  text-shadow:
-    0 0 8px rgba(0, 245, 255, 0.9),
-    0 0 18px rgba(255, 0, 255, 0.7);
 }
 
-.header-right {
+header p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.header-left {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.7rem;
 }
 
-/* Theme toggle visually disabled but keeps its layout slot */
+.logo-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 20% 0, #22d3ee 0, #0f172a 45%, #000 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Theme toggle icon (no light mode logic, just icon) */
 .theme-toggle {
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.2), transparent 60%), #020314;
-  color: var(--text-muted);
-  padding: 0.3rem 0.6rem;
-  font-size: 1rem;
-  cursor: default;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.35);
-  opacity: 0;             /* invisible, keeps size */
-  pointer-events: none;   /* cannot be toggled */
+  width: 32px;
+  height: 32px;
+  border: 1px solid #1f2937;
+  background: rgba(15, 23, 42, 0.9);
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
 .theme-toggle:hover {
-  background: #020314;
+  border-color: #22d3ee;
+  color: #22d3ee;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
 }
 
-/* "Light" header uses same dark gamer style */
-body:not(.dark) header {
-  background:
-    linear-gradient(120deg, rgba(0, 245, 255, 0.18), transparent 45%, rgba(255, 0, 255, 0.16)),
-    rgba(5, 7, 26, 0.96);
-  border-bottom-color: var(--border-soft);
-}
-
-body:not(.dark) .theme-toggle {
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.2), transparent 60%), #020314;
-  color: var(--text-muted);
-  border-color: var(--border-soft);
-}
+/* ============================================
+   MAIN LAYOUT
+============================================ */
 
 main {
-  padding-top: 0.75rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.2rem 1.25rem 4.5rem;
 }
 
-/* =====================================================
-   SEARCH
-===================================================== */
+/* ============================================
+   SEARCH BAR + CONTROLS
+============================================ */
 
+.top-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* search area wrapper */
 #search {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto 0.75rem;
-  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
+/* search bar row: input + buttons */
 #searchBar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+/* search pill */
+#searchInputWrapper {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.18), transparent 60%), var(--bg-elevated-soft);
+  padding: 0.5rem 0.75rem;
   border-radius: 999px;
-  border: 1px solid var(--input-border);
-  padding: 0.35rem 0.45rem;
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.9),
-    0 0 20px rgba(0, 245, 255, 0.4);
+  background: #020617;
+  border: 1px solid #1f2937;
+  box-shadow: 0 0 0 1px #020617;
+}
+
+#searchIcon {
+  font-size: 0.9rem;
+  color: #22d3ee;
 }
 
 #searchInput {
@@ -196,235 +163,171 @@ main {
   border: none;
   outline: none;
   background: transparent;
-  color: var(--text-main);
+  color: #e5e7eb;
   font-size: 0.9rem;
-  padding: 0.45rem 0.85rem;
 }
 
 #searchInput::placeholder {
-  color: var(--text-soft);
+  color: #6b7280;
 }
 
-#searchButton,
+/* clear search button inside pill */
 #clearSearchButton {
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
-  padding: 0.45rem 0.85rem;
+  border: none;
+  background: none;
+  color: #9ca3af;
   cursor: pointer;
-  font-size: 0.85rem;
-  box-shadow:
-    0 6px 16px rgba(0, 0, 0, 0.95),
-    0 0 20px rgba(0, 245, 255, 0.6);
+  font-size: 0.9rem;
 }
 
-#searchButton:hover,
 #clearSearchButton:hover {
-  opacity: 0.9;
+  color: #f97373;
 }
 
-/* light mode => same dark gamer look */
-body:not(.dark) #searchBar {
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.18), transparent 60%), var(--bg-elevated-soft);
-  border-color: var(--input-border);
-}
-
-body:not(.dark) #searchInput {
-  color: var(--text-main);
-}
-
-body:not(.dark) #searchInput::placeholder {
-  color: var(--text-soft);
-}
-
-body:not(.dark) #searchButton,
-body:not(.dark) #clearSearchButton {
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
-}
-
-/* Sort controls */
-
-#sortControls {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.4rem;
-  font-size: 0.8rem;
-}
-
-#sortLabel {
-  margin-right: 0.25rem;
-  color: var(--text-muted);
-}
-
-.sort-btn {
+/* advanced search button (outside pill) */
+#advancedSearchButton {
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: #020314;
-  color: var(--text-main);
-  padding: 0.25rem 0.55rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  box-shadow: 0 0 14px rgba(0, 245, 255, 0.4);
-}
-
-.sort-btn.active {
-  background: linear-gradient(135deg, #00f5ff, #ff00ff);
-  border-color: var(--border-strong);
-  color: #0b0214;
-  text-shadow:
-    0 0 8px rgba(0, 0, 0, 0.8),
-    0 0 16px rgba(0, 245, 255, 0.9);
-}
-
-.sort-btn:hover {
-  opacity: 0.92;
-}
-
-/* light mode */
-body:not(.dark) .sort-btn {
-  background: #020314;
-  border-color: var(--border-soft);
-  color: var(--text-main);
-}
-
-#resultsInfo {
-  margin-top: 0.2rem;
+  padding: 0.5rem 0.85rem;
   font-size: 0.8rem;
-  color: var(--text-muted);
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
 }
 
-body:not(.dark) #resultsInfo {
-  color: var(--text-muted);
+#advancedSearchButton i {
+  font-size: 0.8rem;
 }
 
-/* =====================================================
-   CATEGORY BUTTON ROW
-===================================================== */
+#advancedSearchButton:hover {
+  border-color: #22d3ee;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
+}
 
-#categories {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto 0.5rem;
-  padding: 0.25rem 1rem 0.75rem;
+/* Category row and sort row */
+
+#controlsRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.6rem;
 }
 
+/* Categories row: all category buttons shown inline */
+#categoriesRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+/* category pill buttons (for new markup) */
+.category-pill {
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.category-pill:hover {
+  border-color: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6);
+}
+
+.category-pill.active {
+  border-color: #22d3ee;
+  background: #0b1120;
+  box-shadow:
+    0 0 12px rgba(34, 211, 238, 0.7),
+    0 0 24px rgba(15, 23, 42, 0.9);
+}
+
+/* category-btn (for your original markup) */
 .category-btn {
   padding: 0.4rem 1rem;
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%), #05081f;
-  color: var(--text-main);
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
   font-size: 0.85rem;
   cursor: pointer;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.4);
-}
-
-.category-btn.active {
-  background: linear-gradient(135deg, #00f5ff, #ff00ff);
-  color: #050210;
-  border-color: var(--border-strong);
-  text-shadow:
-    0 0 10px rgba(0, 0, 0, 0.85),
-    0 0 24px rgba(255, 0, 255, 0.8);
 }
 
 .category-btn:hover {
-  opacity: 0.95;
+  border-color: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6);
 }
 
-/* light mode */
-body:not(.dark) .category-btn {
-  background: radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%), #05081f;
-  color: var(--text-main);
-  border-color: var(--border-soft);
+.category-btn.active {
+  border-color: #22d3ee;
+  background: #0b1120;
+  box-shadow:
+    0 0 12px rgba(34, 211, 238, 0.7),
+    0 0 24px rgba(15, 23, 42, 0.9);
 }
 
-/* active category in light mode */
-body:not(.dark) .category-btn.active {
-  background: linear-gradient(135deg, #00f5ff, #ff00ff);
-  color: #050210;
-  border-color: var(--border-strong);
+/* stats + sort row */
+#statsSortRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
-/* =====================================================
-   BOOKS SECTION & GRID
-===================================================== */
+#stats {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
 
+/* sort select */
+#sortWrapper {
+  font-size: 0.82rem;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#sortSelect {
+  border-radius: 999px;
+  padding: 0.3rem 0.65rem;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+}
+
+/* ============================================
+   BOOK GRID
+============================================ */
+
+/* wrapper section – support both IDs */
+#booksSection,
 #all-books {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto 4rem;
-  padding: 0 1rem;
+  margin-top: 1.3rem;
 }
 
-/* Flex grid so desktop aligns left */
+/* grid container – support both structures */
+#booksGrid,
 .books-grid {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5rem;
-  justify-content: flex-start;
+  gap: 1rem;
 }
 
-/* Pagination */
-
-.pagination {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  margin: 0.6rem 0 1rem;
-}
-
-.pagination button {
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: #020314;
-  color: var(--text-main);
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-  box-shadow: 0 0 16px rgba(0, 245, 255, 0.4);
-}
-
-.pagination button:disabled {
-  opacity: 0.4;
-  cursor: default;
-  box-shadow: none;
-}
-
-#pageInfo {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* light mode */
-body:not(.dark) .pagination button {
-  background: #020314;
-  border-color: var(--border-soft);
-  color: var(--text-main);
-}
-
-/* =====================================================
-   BOOK CARD (UNIFORM HEIGHT)
-===================================================== */
-
+/* single card */
 .book-card {
   width: 230px;
   padding: 0.9rem;
   border-radius: 18px;
-  background:
-    radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.16), transparent 60%),
-    var(--bg-elevated);
-  border: 1px solid var(--border-soft);
-  box-shadow:
-    0 12px 38px rgba(0, 0, 0, 0.95),
-    0 0 26px rgba(0, 245, 255, 0.4);
+  background: #020617;
+  border: 1px solid #1f2937;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.7);
   position: relative;
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
@@ -433,115 +336,73 @@ body:not(.dark) .pagination button {
   min-height: 330px;
 }
 
+/* neon glow on hover – size unchanged */
 .book-card:hover {
   transform: translateY(-4px);
-  box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.98),
-    0 0 40px rgba(0, 245, 255, 0.65);
-  border-color: var(--border-strong);
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.9),
+    0 0 18px rgba(34, 211, 238, 0.55);
+  border-color: #22d3ee;
 }
 
-/* light mode */
-body:not(.dark) .book-card {
-  background:
-    radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.16), transparent 60%),
-    var(--bg-elevated);
-  border-color: var(--border-soft);
-  box-shadow:
-    0 12px 38px rgba(0, 0, 0, 0.95),
-    0 0 26px rgba(0, 245, 255, 0.4);
-}
-
-/* Bookmark button */
-
-.bookmark-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 1.1rem;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 245, 255, 0.55);
-  background: radial-gradient(circle at 30% 0, rgba(0, 245, 255, 0.4), transparent 70%), #020314;
-  color: var(--accent-primary);
-  padding: 0.1rem 0.45rem;
-  cursor: pointer;
-  z-index: 2;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.8);
-}
-
-body:not(.dark) .bookmark-btn {
-  background: radial-gradient(circle at 30% 0, rgba(0, 245, 255, 0.4), transparent 70%), #020314;
-  color: var(--accent-primary);
-}
-
-/* Cover */
-
+/* cover (for inspiration markup) */
 .book-cover {
+  height: 170px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+  border: 1px solid #000;
+}
+
+.book-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* cover for your original markup (same colors, aspect-ratio style) */
+.book-cover-original {
   width: 100%;
   aspect-ratio: 2 / 3;
   object-fit: fill;
   border-radius: 12px;
-  background: radial-gradient(circle at 50% 0, rgba(255, 255, 255, 0.02), transparent 60%), #020314;
-  box-shadow:
-    0 10px 26px rgba(0, 0, 0, 0.9),
-    0 0 18px rgba(0, 245, 255, 0.4);
+  background: #020617;
 }
 
-/* Info area flex: grow to fill card */
-.book-info {
-  flex: 1 1 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-top: 0.55rem;
-}
-
-/* Title: show full (no "..."), just smaller to fit */
+/* text info */
 .book-title {
-  font-size: 0.9rem;
+  margin: 0;
+  font-size: 0.95rem;
   font-weight: 600;
-  line-height: 1.25;
-  white-space: normal;
-  display: block;
-  color: var(--text-main);
-  text-shadow:
-    0 0 8px rgba(0, 245, 255, 0.7),
-    0 0 18px rgba(255, 0, 255, 0.55);
 }
 
-/* Other text can be truncated */
-.book-author,
-.book-category,
-.book-desc {
-  overflow: hidden;
+.book-author {
+  margin: 0.15rem 0 0.2rem;
+  font-size: 0.82rem;
+  color: #9ca3af;
 }
 
-.book-author,
-.book-category {
-  font-size: 0.8rem;
-  color: var(--text-soft);
+.book-category-label {
+  font-size: 0.75rem;
+  color: #a5b4fc;
 }
 
-body:not(.dark) .book-author,
-body:not(.dark) .book-category {
-  color: var(--text-soft);
+/* tags list */
+.book-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
 }
 
-/* Description: clamp to 3 lines */
-.book-desc {
-  margin-top: 0.15rem;
-  font-size: 0.8rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  color: var(--text-muted);
+.tag-chip {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: #111827;
+  font-size: 0.75rem;
+  color: #e5e7eb;
 }
 
-/* =====================================================
-   CARD BUTTONS (READ / DOWNLOAD)
-===================================================== */
-
+/* book links (footer buttons) */
 .book-links {
   display: flex;
   gap: 0.5rem;
@@ -559,205 +420,234 @@ body:not(.dark) .book-category {
   font-size: 0.8rem;
   padding: 0.5rem 0.7rem;
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
-  box-shadow:
-    0 4px 16px rgba(0, 0, 0, 0.95),
-    0 0 22px rgba(0, 245, 255, 0.5);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
-  white-space: nowrap;
+  border: none;
+  background: #111827;
+  color: #e5e7eb;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.85);
 }
 
-.book-links a i {
-  font-size: 0.88rem;
+/* Neon Get PDF button in card footer */
+.book-links a.pdf-link {
+  border: 1px solid #22d3ee;
+  background: #022c3a;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.5);
 }
 
-.book-links a:hover {
-  transform: translateY(-1px);
-  box-shadow:
-    0 6px 22px rgba(0, 0, 0, 1),
-    0 0 26px rgba(0, 245, 255, 0.65);
-  opacity: 0.95;
+.book-links a.pdf-link:hover {
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.7);
 }
 
-/* light mode */
-body:not(.dark) .book-links a {
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
+/* bookmark icon in card top-right – both class names */
+.bookmark-toggle,
+.bookmark-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid #1f2937;
+  background: rgba(15, 23, 42, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.85);
 }
 
-/* =====================================================
-   MODAL BASE (CENTERED, CONTENT-SIZED)
-===================================================== */
+.bookmark-toggle:hover,
+.bookmark-btn:hover {
+  border-color: #22d3ee;
+  color: #22d3ee;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.7);
+}
+
+/* ============================================
+   EMPTY STATE
+============================================ */
+
+#emptyState {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border-radius: 16px;
+  border: 1px dashed #374151;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #9ca3af;
+  background: rgba(15, 23, 42, 0.7);
+}
+
+/* reset filters button */
+#resetFiltersButton {
+  margin-top: 0.5rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+#resetFiltersButton:hover {
+  border-color: #22d3ee;
+  box-shadow: 0 0 16px rgba(34, 211, 238, 0.6);
+}
+
+/* ============================================
+   PAGINATION
+============================================ */
+
+#pagination {
+  margin-top: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+#pagination button {
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+#pagination button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+#pagination button:hover:not(:disabled) {
+  border-color: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.6);
+}
+
+/* ============================================
+   MODALS – BASE
+============================================ */
 
 .modal {
   position: fixed;
   inset: 0;
-  display: flex;
+  z-index: 80;
+  display: none;
   align-items: center;
   justify-content: center;
-  z-index: 80;
-  padding: 0.75rem;
 }
 
-.modal.hidden {
-  display: none;
+.modal.show {
+  display: flex;
 }
 
 .modal-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 10% 0, rgba(0, 245, 255, 0.26), transparent 65%),
-              radial-gradient(circle at 90% 100%, rgba(255, 0, 255, 0.3), transparent 65%),
-              rgba(1, 2, 10, 0.88);
+  background: rgba(0, 0, 0, 0.8);
 }
 
+/* dialog */
 .modal-dialog {
   position: relative;
-  z-index: 1;
-  width: auto;
-  max-width: min(700px, 95vw);
-  max-height: 90vh;
-  background:
-    radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.18), transparent 65%),
-    var(--glass-bg);
-  border-radius: 18px;
-  border: 1px solid var(--border-strong);
+  z-index: 81;
+  width: min(520px, 92%);
+  max-height: 86vh;
+  overflow-y: auto;
+  border-radius: 20px;
+  background: radial-gradient(circle at top, #020617 0, #020617 60%, #000 100%);
+  border: 1px solid #1f2937;
   box-shadow:
-    0 20px 60px rgba(0, 0, 0, 1),
-    0 0 40px rgba(0, 245, 255, 0.7);
-  padding: 0.9rem 0.9rem 0.8rem;
-  display: flex;
-  flex-direction: column;
+    0 24px 70px rgba(0, 0, 0, 0.95),
+    0 0 28px rgba(34, 211, 238, 0.4);
+  padding: 1.4rem 1.3rem 1.1rem;
 }
 
-body:not(.dark) .modal-dialog {
-  background:
-    radial-gradient(circle at 0 0, rgba(0, 245, 255, 0.16), transparent 60%),
-    radial-gradient(circle at 100% 100%, rgba(255, 0, 255, 0.18), transparent 65%),
-    var(--glass-bg);
-  border-color: var(--border-strong);
-}
-
+/* close button */
 .modal-close {
   position: absolute;
-  top: 0.5rem;
-  right: 0.6rem;
+  top: 8px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: #020314;
-  color: var(--accent-primary);
-  padding: 0.2rem 0.5rem;
-  cursor: pointer;
-  z-index: 2;
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.7);
-}
-
-body:not(.dark) .modal-close {
-  background: #020314;
-  color: var(--accent-primary);
-}
-
-/* Modal body: scroll if content taller than 90vh */
-.modal-body {
-  margin-top: 0.4rem;
-  overflow-y: auto;
-}
-
-/* Modal header */
-
-.modal-book-header {
+  border: 1px solid #1f2937;
+  background: #020617;
+  color: #9ca3af;
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.modal-cover {
-  width: 120px;
-  border-radius: 12px;
-  aspect-ratio: 2/3;
-  object-fit: cover;
-  box-shadow:
-    0 12px 28px rgba(0, 0, 0, 0.98),
-    0 0 24px rgba(0, 245, 255, 0.7);
-}
-
-.modal-book-main h3 {
-  font-size: 0.95rem;
-  margin: 0 0 0.25rem;
-  color: var(--text-main);
-  text-shadow:
-    0 0 9px rgba(0, 245, 255, 0.9),
-    0 0 20px rgba(255, 0, 255, 0.9);
-}
-
-/* compact author + category + tags row */
-.modal-author-category {
-  margin: 0;
-  font-size: 0.8rem;
-  opacity: 0.95;
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  color: var(--text-soft);
+  justify-content: center;
+  cursor: pointer;
 }
 
-.modal-author-category span {
-  white-space: normal;
+.modal-close:hover {
+  border-color: #22d3ee;
+  color: #22d3ee;
 }
 
-/* Modal sections */
+/* ============================================
+   BOOK DETAIL MODAL
+============================================ */
 
-.modal-section {
-  margin: 0.5rem 0;
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--text-muted);
-}
-
-/* Clamp long paragraphs to avoid big scroll */
-.modal-section p {
-  margin: 0.1rem 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* Tags in header row */
-.mac-tags .tag-chip {
-  padding: 0.1rem 0.4rem;
-  font-size: 0.7rem;
-}
-
-/* Tags (general style) */
-
-.tag-row {
+.book-modal-header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.9rem;
 }
 
-.tag-chip {
-  padding: 0.2rem 0.6rem;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  font-size: 0.75rem;
-  color: var(--text-main);
-  border: 1px solid var(--border-soft);
-  box-shadow: 0 0 16px rgba(0, 245, 255, 0.45);
+.book-modal-cover {
+  width: 110px;
+  height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #000;
+  box-shadow:
+    0 0 24px rgba(0, 0, 0, 0.9),
+    0 0 18px rgba(34, 211, 238, 0.4);
 }
 
-body:not(.dark) .tag-chip {
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
+.book-modal-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.book-modal-main {
+  flex: 1;
+}
+
+.book-modal-main h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.book-modal-main .book-author {
+  margin-top: 0.2rem;
+}
+
+.book-modal-meta {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+}
+
+/* description and tags */
+.book-modal-body {
+  margin-top: 0.75rem;
+  font-size: 0.86rem;
+  color: #d1d5db;
+  line-height: 1.5;
+}
+
+.book-modal-tags {
+  margin-top: 0.75rem;
 }
 
 /* Modal actions */
-
 .modal-actions {
   display: flex;
   gap: 0.6rem;
@@ -765,6 +655,7 @@ body:not(.dark) .tag-chip {
   margin-bottom: 0.5rem;
 }
 
+/* base style for modal buttons */
 .modal-btn {
   flex: 1 1 0;
   text-align: center;
@@ -772,143 +663,94 @@ body:not(.dark) .tag-chip {
   font-size: 0.82rem;
   padding: 0.55rem 1rem;
   border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
+  border: none;
+  background: #111827;
+  color: #e5e7eb;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  box-shadow:
-    0 8px 22px rgba(0, 0, 0, 1),
-    0 0 24px rgba(0, 245, 255, 0.6);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.9);
 }
 
-/* Category dialog */
-
-.category-dialog {
-  max-width: 500px;
+/* modal close button (secondary) */
+.modal-btn.secondary {
+  background: #374151;
 }
 
-.category-list {
-  margin-top: 0.6rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
+/* Modal Get PDF button (left side, neon style) */
+.modal-btn.pdf-btn {
+  border: 1px solid #22d3ee;
+  background: #022c3a;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.55);
 }
 
-.category-pill {
-  padding: 0.4rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  background: #020314;
-  color: var(--text-main);
-  font-size: 0.85rem;
-  cursor: pointer;
-  box-shadow: 0 0 16px rgba(0, 245, 255, 0.45);
+/* bookmark button with slight neon glow on hover */
+.modal-btn.bookmark-btn:hover {
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.45);
 }
 
-.category-pill:hover {
-  opacity: 0.9;
+/* ============================================
+   SEARCH OVERLAY MODAL
+============================================ */
+
+.search-overlay-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
 }
 
-body:not(.dark) .category-pill {
-  background: #020314;
-  border-color: var(--border-soft);
-  color: var(--text-main);
-}
-
-/* =====================================================
-   SEARCH OVERLAY (MOBILE)
-===================================================== */
-
-.search-overlay .modal-dialog {
-  max-width: 500px;
-}
-
-.search-dialog {
-  max-width: 500px;
-}
-
-.search-overlay-inner {
+.search-overlay-fields {
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  gap: 0.6rem;
 }
 
-#searchOverlayInput {
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid var(--input-border);
-  background: var(--input-bg);
-  color: var(--text-main);
-  font-size: 0.9rem;
-  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.9);
+.search-overlay-fields label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-#searchOverlayInput::placeholder {
-  color: var(--text-soft);
+.search-overlay-fields input {
+  border-radius: 10px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #e5e7eb;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.85rem;
 }
 
 .search-overlay-actions {
   display: flex;
+  justify-content: flex-end;
   gap: 0.5rem;
+  margin-top: 0.9rem;
 }
 
 .search-overlay-actions button {
-  flex: 1 1 0;
-  border-radius: 999px;
-  border: 1px solid var(--border-soft);
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
-  box-shadow:
-    0 8px 18px rgba(0, 0, 0, 1),
-    0 0 20px rgba(0, 245, 255, 0.55);
+  font-size: 0.8rem;
+  padding-inline: 0.9rem;
 }
 
-.search-overlay-actions button:nth-child(2) {
-  background: #05081f;
-}
-
-/* light mode */
-body:not(.dark) #searchOverlayInput {
-  background: var(--input-bg);
-  border-color: var(--input-border);
-  color: var(--text-main);
-}
-
-body:not(.dark) #searchOverlayInput::placeholder {
-  color: var(--text-soft);
-}
-
-body:not(.dark) .search-overlay-actions button {
-  background: linear-gradient(135deg, #051436, #3d0d76);
-  color: var(--text-main);
-}
-
-/* =====================================================
+/* ============================================
    ANDROID-STYLE BOTTOM NAV
-===================================================== */
+============================================ */
 
 .mobile-bottom-nav {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
   height: 60px;
-  background: rgba(4, 6, 22, 0.97);
-  border-top: 1px solid var(--border-soft);
+  background: rgba(15, 23, 42, 0.97);
+  border-top: 1px solid #1f2937;
   display: none;
   justify-content: space-around;
   align-items: center;
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(10px);
   z-index: 70;
-  box-shadow:
-    0 -10px 28px rgba(0, 0, 0, 1),
-    0 0 20px rgba(0, 245, 255, 0.45);
 }
 
 .mobile-bottom-nav button {
@@ -918,7 +760,7 @@ body:not(.dark) .search-overlay-actions button {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-muted);
+  color: #22d3ee; /* neon color */
 }
 
 .nav-icon {
@@ -926,44 +768,36 @@ body:not(.dark) .search-overlay-actions button {
   line-height: 1;
 }
 
-/* active nav item */
+/* active nav item – neon glow */
 .mobile-bottom-nav button.nav-active {
-  background: #020314;
+  background: #020617;
   border-radius: 999px;
   padding: 0.25rem 0.9rem;
-  color: var(--accent-primary);
-  box-shadow: 0 0 18px rgba(0, 245, 255, 0.85);
+  color: #22d3ee;
+  box-shadow: 0 0 18px rgba(34, 211, 238, 0.6);
 }
 
-/* light mode */
-body:not(.dark) .mobile-bottom-nav {
-  background: rgba(4, 6, 22, 0.97);
-  border-top-color: var(--border-soft);
-}
-
-body:not(.dark) .mobile-bottom-nav button {
-  color: var(--text-muted);
-}
-
-body:not(.dark) .mobile-bottom-nav button.nav-active {
-  background: #020314;
-  color: var(--accent-primary);
-}
-
-/* =====================================================
+/* ============================================
    FOOTER
-===================================================== */
+============================================ */
 
 footer {
   padding: 1rem;
   text-align: center;
   font-size: 0.8rem;
-  color: var(--text-soft);
+  color: #6b7280;
 }
 
-/* =====================================================
-   MOBILE RESPONSIVE
-===================================================== */
+/* ============================================
+   RESPONSIVE (LAYOUT ONLY, NOT SIZES)
+============================================ */
+
+@media (max-width: 900px) {
+  #booksGrid,
+  .books-grid {
+    justify-content: center;
+  }
+}
 
 @media (max-width: 768px) {
   header {
@@ -974,125 +808,13 @@ footer {
     font-size: 1.05rem;
   }
 
-  #search {
+  main {
     padding-inline: 0.75rem;
+    padding-bottom: 4.5rem;
   }
 
-  #searchBar {
-    flex-wrap: nowrap;
-  }
-
-  #searchInput {
-    font-size: 0.8rem;
-    padding: 0.5rem 0.7rem;
-  }
-
-  #searchButton,
-  #clearSearchButton {
-    padding: 0.4rem 0.7rem;
-    font-size: 0.75rem;
-  }
-
-  #categories {
-    max-width: 100%;
-    padding-inline: 0.75rem;
-    gap: 0.45rem;
-  }
-
-  .category-btn {
-    font-size: 0.75rem;
-    padding: 0.35rem 0.7rem;
-  }
-
-  #all-books {
-    max-width: 100%;
-    padding: 0 0.75rem 4rem;
-  }
-
-  .books-grid {
-    justify-content: center;
-  }
-
-  .book-card {
-    width: 46%;
-    max-width: 190px;
-    padding: 0.7rem;
-    border-radius: 14px;
-    min-height: 310px;
-  }
-
-  .book-title {
-    font-size: 0.85rem;
-  }
-
-  .book-author,
-  .book-category,
-  .book-desc {
-    font-size: 0.7rem;
-  }
-
-  .book-links {
+  .book-modal-header {
     flex-direction: column;
-  }
-
-  .book-links a {
-    width: 100%;
-    font-size: 0.7rem;
-    padding: 0.4rem 0.45rem;
-  }
-
-  .modal {
-    padding: 0.75rem;              /* keep some space around popup */
-  }
-
-  .modal-dialog {
-    width: 94vw;
-    max-width: 94vw;
-    max-height: 90vh;
-    height: auto;
-    border-radius: 18px;
-    padding: 0.8rem;
-  }
-
-  .modal-body {
-    font-size: 0.78rem;
-  }
-
-  .modal-book-header {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-  }
-
-  .modal-cover {
-    width: 110px;
-  }
-
-  .modal-book-main h3 {
-    font-size: 0.9rem;
-  }
-
-  .modal-author-category {
-    font-size: 0.76rem;
-  }
-
-  .modal-section {
-    font-size: 0.78rem;
-    margin: 0.45rem 0;
-  }
-
-  .modal-section p {
-    -webkit-line-clamp: 5;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-    margin-top: 0.8rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .modal-actions .modal-btn {
-    width: 100%;
   }
 
   .mobile-bottom-nav {
