@@ -2,303 +2,313 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Library | The Gopal</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Library.TheGopal.com</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#020617" />
+
+  <!-- Favicon -->
   <link rel="icon" href="favicon.ico" />
 
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <!-- Font Awesome (keep as in your project) -->
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
     rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
   />
   <link
     rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
+    href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
   />
 
-  <!-- Styles -->
+  <!-- Main styles -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
-  <!-- =========================
-       HEADER
-       ========================= -->
+  <!-- HEADER -->
   <header>
-    <div class="header-left">
-      <div class="logo-circle">📚</div>
+    <div class="header-title">
+      <span class="header-logo">
+        <i class="fa-solid fa-book"></i>
+      </span>
       <div>
-        <h1>Library</h1>
-        <p>Search &amp; explore books</p>
+        <h1>Library.TheGopal.com</h1>
+        <div class="header-badge">Online Library</div>
       </div>
     </div>
 
     <div class="header-actions">
-      <!-- Just a visual icon now, no light mode -->
-      <button class="theme-toggle" type="button" aria-label="Theme icon">
-        <i class="fa-solid fa-moon"></i>
+      <!-- Inline stats (desktop) -->
+      <div class="header-inline-stats">
+        <div class="header-inline-stat-pill">
+          <span class="icon"><i class="fa-solid fa-book"></i></span>
+          <span id="statTotalBooks">0</span>
+        </div>
+        <div class="header-inline-stat-pill">
+          <span class="icon"><i class="fa-solid fa-layer-group"></i></span>
+          <span id="statCategories">0</span>
+        </div>
+        <div class="header-inline-stat-pill">
+          <span class="icon"><i class="fa-regular fa-bookmark"></i></span>
+          <span id="statBookmarks">0</span>
+        </div>
+      </div>
+
+      <!-- Open search overlay -->
+      <button id="openSearchOverlay" class="theme-toggle" type="button" title="Quick search">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+
+      <!-- Theme toggle (visually present, but JS locks dark mode) -->
+      <button id="themeToggle" class="theme-toggle" type="button" title="Dark mode">
+        <i class="fa-regular fa-moon"></i>
       </button>
     </div>
   </header>
 
-  <!-- =========================
-       MAIN CONTENT
-       ========================= -->
   <main>
-    <!-- SEARCH + CONTROLS -->
-    <section id="search" class="top-controls">
-      <!-- Search bar row -->
+    <!-- SEARCH SECTION -->
+    <section id="search">
       <div id="searchBar">
-        <div id="searchInputWrapper">
-          <i id="searchIcon" class="fa-solid fa-magnifying-glass"></i>
-          <input
-            id="searchInput"
-            type="search"
-            placeholder="Search by title, author, tag..."
-            autocomplete="off"
-          />
-          <button
-            id="clearSearchButton"
-            type="button"
-            aria-label="Clear search"
-          >
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <button
-          id="advancedSearchButton"
-          type="button"
-        >
-          <i class="fa-solid fa-sliders"></i>
-          Advanced
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Search books, authors, tags..."
+        />
+        <button id="searchButton" title="Search">
+          <i class="fa-solid fa-magnifying-glass"></i>
+        </button>
+        <button id="clearSearchButton" title="Clear search">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+    </section>
 
-      <!-- Categories + stats/sort -->
-      <div id="controlsRow">
-        <!-- All categories (and Bookmarks) will be rendered here -->
-        <div id="categoriesRow"></div>
+    <!-- SEARCH META (results + active filters summary) -->
+    <section id="searchMeta">
+      <div id="resultsInfo">Loading...</div>
+      <div class="filter-chip-row">
+        <!-- could show active filters etc. (optional, JS can update later) -->
+      </div>
+    </section>
 
-        <div id="statsSortRow">
-          <div id="stats">0 books</div>
-
-          <div id="sortWrapper">
-            <span>Sort:</span>
-            <select id="sortSelect"></select>
+    <!-- STATS + QUICK FILTERS PANEL -->
+    <section id="statsPanel">
+      <!-- Left: stats summary -->
+      <article id="statsSummary">
+        <h2>Library Stats</h2>
+        <div class="stats-grid">
+          <div class="stat-pill">
+            <span>Total Books</span>
+            <span id="statTotalBooks">0</span>
+          </div>
+          <div class="stat-pill">
+            <span>Categories</span>
+            <span id="statCategories">0</span>
+          </div>
+          <div class="stat-pill">
+            <span>Bookmarked</span>
+            <span id="statBookmarks">0</span>
           </div>
         </div>
-      </div>
+      </article>
+
+      <!-- Right: quick filters -->
+      <aside id="quickFilters">
+        <h2>Quick Filters</h2>
+        <div class="quick-filter-row">
+          <button
+            type="button"
+            class="quick-filter-pill"
+            data-filter="recent"
+          >
+            <i class="fa-solid fa-clock-rotate-left"></i>&nbsp;Recent
+          </button>
+          <button
+            type="button"
+            class="quick-filter-pill"
+            data-filter="bookmarked"
+          >
+            <i class="fa-regular fa-bookmark"></i>&nbsp;Bookmarked
+          </button>
+          <button
+            type="button"
+            class="quick-filter-pill"
+            data-filter="history"
+          >
+            <i class="fa-solid fa-clock"></i>&nbsp;History
+          </button>
+        </div>
+      </aside>
     </section>
 
-    <!-- BOOKS SECTION -->
-    <section id="booksSection">
-      <div id="booksGrid" aria-live="polite" aria-busy="true"></div>
-
-      <!-- Empty state -->
-      <div id="emptyState" class="hidden">
-        <p>No books found matching your filters.</p>
-        <button
-          id="resetFiltersButton"
-          type="button"
-        >
-          Reset filters
+    <!-- CATEGORY BUTTON ROW -->
+    <section id="categories">
+      <div id="categoryButtons">
+        <!-- Basic "All" category is handled by JS, but safe default: -->
+        <button class="category-pill" type="button" onclick="void(0)">
+          All
         </button>
       </div>
 
-      <!-- Pagination -->
-      <div id="pagination"></div>
+      <!-- Button to open full category list modal (used by JS) -->
+      <button
+        type="button"
+        class="quick-filter-pill"
+        data-action="show-categories"
+      >
+        <i class="fa-solid fa-list"></i>&nbsp;All Categories
+      </button>
     </section>
+
+    <!-- FILTER BAR: sort + view tabs -->
+    <section id="filterBar">
+      <div id="filterBarLeft">
+        <span id="sortLabel">Sort:</span>
+        <button
+          class="sort-btn active"
+          type="button"
+          data-sort="title-asc"
+          title="Title A → Z"
+        >
+          <i class="fa-solid fa-arrow-down-a-z"></i>
+        </button>
+        <button
+          class="sort-btn"
+          type="button"
+          data-sort="title-desc"
+          title="Title Z → A"
+        >
+          <i class="fa-solid fa-arrow-down-z-a"></i>
+        </button>
+        <button
+          class="sort-btn"
+          type="button"
+          data-sort="author-asc"
+          title="Author A → Z"
+        >
+          <i class="fa-solid fa-user-pen"></i>
+        </button>
+        <button
+          class="sort-btn"
+          type="button"
+          data-sort="author-desc"
+          title="Author Z → A"
+        >
+          <i class="fa-solid fa-user-pen"></i>
+          <i class="fa-solid fa-arrow-down-z-a"></i>
+        </button>
+      </div>
+
+      <div id="viewTabs">
+        <button
+          type="button"
+          class="view-tab active"
+          data-view="all"
+          title="All books"
+        >
+          <i class="fa-solid fa-globe"></i>&nbsp;All
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          data-view="bookmarks"
+          title="Bookmarked"
+        >
+          <i class="fa-regular fa-bookmark"></i>&nbsp;Bookmarks
+        </button>
+        <button
+          type="button"
+          class="view-tab"
+          data-view="history"
+          title="Recently opened"
+        >
+          <i class="fa-solid fa-clock-rotate-left"></i>&nbsp;History
+        </button>
+      </div>
+    </section>
+
+    <!-- OPTIONAL CATEGORY CHIP STRIP (JS will fill if you want) -->
+    <section id="categoryList">
+      <div id="categoryChipRow"></div>
+    </section>
+
+    <!-- BOOKS GRID -->
+    <section id="booksSection">
+      <div id="booksGrid"></div>
+    </section>
+
+    <!-- PAGINATION -->
+    <section id="pagination">
+      <button id="prevPage" class="page-btn" type="button">
+        <i class="fa-solid fa-angle-left"></i>
+      </button>
+      <span id="pageInfo"></span>
+      <button id="nextPage" class="page-btn" type="button">
+        <i class="fa-solid fa-angle-right"></i>
+      </button>
+    </section>
+
+    <!-- BOOK DETAILS MODAL -->
+    <div id="bookModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORY SELECT MODAL (for bottom nav "Categories") -->
+    <div id="categoryModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog category-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body">
+          <h3>Select category</h3>
+          <div id="categoryListModal" class="category-list"></div>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <!-- =========================
-       BOOK DETAIL MODAL
-       ========================= -->
-  <div id="bookModal" class="modal" aria-hidden="true" role="dialog" aria-modal="true">
-    <div class="modal-overlay"></div>
-
-    <div class="modal-dialog">
-      <button
-        type="button"
-        class="modal-close"
-        aria-label="Close book details"
-      >
-        &times;
-      </button>
-
-      <div class="book-modal-header">
-        <div class="book-modal-cover">
-          <img id="modalCover" src="img/book.jpg" alt="Book cover" />
-        </div>
-        <div class="book-modal-main">
-          <h2 id="modalTitle"></h2>
-          <p id="modalAuthor" class="book-author"></p>
-          <div id="modalMeta" class="book-modal-meta"></div>
-        </div>
-      </div>
-
-      <div class="book-modal-body">
-        <p id="modalDescription"></p>
-        <div id="modalTags" class="book-modal-tags"></div>
-      </div>
-
-      <div class="modal-actions">
-        <button
-          id="modalPdfButton"
-          type="button"
-          class="modal-btn pdf-btn"
-        >
-          <i class="fa-solid fa-file-pdf"></i>
-          Get PDF
-        </button>
-
-        <button
-          id="modalBookmarkButton"
-          type="button"
-          class="modal-btn bookmark-btn"
-        >
-          <i class="fa-regular fa-bookmark"></i>
-          Bookmark
-        </button>
-
-        <button
-          id="modalCloseButton"
-          type="button"
-          class="modal-btn secondary"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================
-       ADVANCED SEARCH OVERLAY
-       ========================= -->
-  <div
-    id="searchOverlay"
-    class="modal"
-    aria-hidden="true"
-    role="dialog"
-    aria-modal="true"
-  >
-    <div class="modal-overlay"></div>
-
-    <div class="modal-dialog">
-      <button
-        type="button"
-        class="modal-close"
-        aria-label="Close advanced search"
-      >
-        &times;
-      </button>
-
-      <h2 class="search-overlay-title">Advanced search</h2>
-
-      <div class="search-overlay-fields">
-        <label>
-          Title
-          <input
-            id="advTitleInput"
-            type="text"
-            placeholder="Book title"
-          />
-        </label>
-        <label>
-          Author
-          <input
-            id="advAuthorInput"
-            type="text"
-            placeholder="Author name"
-          />
-        </label>
-        <label>
-          Tags
-          <input
-            id="advTagsInput"
-            type="text"
-            placeholder="PDF, 10 MB, 150 PAGES..."
-          />
-        </label>
-        <label>
-          Category
-          <input
-            id="advCategoryInput"
-            type="text"
-            placeholder="Category"
-          />
-        </label>
-      </div>
-
-      <div class="search-overlay-actions">
-        <button
-          id="advResetButton"
-          type="button"
-        >
-          Reset
-        </button>
-        <button
-          id="advCloseButton"
-          type="button"
-          class="modal-btn secondary"
-        >
-          Close
-        </button>
-        <button
-          id="advApplyButton"
-          type="button"
-        >
-          Apply
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- =========================
-       MOBILE BOTTOM NAV
-       ========================= -->
-  <nav class="mobile-bottom-nav" aria-label="Primary">
-    <button type="button" data-nav="home" class="nav-active">
-      <i class="fa-solid fa-house nav-icon"></i>
+  <!-- MOBILE BOTTOM NAV (shown on small screens via CSS) -->
+  <nav id="mobileBottomNav" class="mobile-bottom-nav">
+    <button type="button" data-section="home" class="nav-active">
+      <span class="nav-icon">
+        <i class="fa-solid fa-house"></i>
+      </span>
     </button>
-    <button type="button" data-nav="bookmarks">
-      <i class="fa-regular fa-bookmark nav-icon"></i>
+    <button type="button" data-section="bookmarks">
+      <span class="nav-icon">
+        <i class="fa-regular fa-bookmark"></i>
+      </span>
     </button>
-    <button type="button" data-nav="categories">
-      <i class="fa-solid fa-layer-group nav-icon"></i>
+    <button type="button" data-section="history">
+      <span class="nav-icon">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </span>
     </button>
-    <button type="button" data-nav="search">
-      <i class="fa-solid fa-magnifying-glass nav-icon"></i>
+    <button type="button" data-section="search">
+      <span class="nav-icon">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </span>
     </button>
   </nav>
 
-  <!-- =========================
-       FOOTER
-       ========================= -->
-  <footer>
-    Library · Powered by Google Sheets
-  </footer>
+  <!-- MAIN SCRIPT -->
+  <script src="js/app.js"></script>
 
-  <!-- =========================
-       SCRIPTS
-       ========================= -->
-  <script src="js/app.js" defer></script>
+  <!-- SERVICE WORKER REGISTER -->
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", function () {
-        navigator.serviceWorker
-          .register("sw.js")
-          .catch(function (err) {
-            console.error("SW registration failed:", err);
-          });
+        navigator.serviceWorker.register("sw.js");
       });
     }
   </script>
