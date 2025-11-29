@@ -7,7 +7,7 @@
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b1220" id="meta-theme-color" />
+  <meta name="theme-color" content="#f4f4ff" id="meta-theme-color" />
   <link rel="icon" href="favicon.ico" />
 
   <!-- Fonts & Icons -->
@@ -42,13 +42,14 @@
     </div>
 
     <div class="header-actions">
+      <!-- You can repurpose this button later if you want -->
       <button
         id="themeToggle"
         class="icon-btn"
         type="button"
-        aria-label="Toggle theme"
+        aria-label="Theme"
       >
-        <i class="fa-solid fa-moon"></i>
+        <i class="fa-solid fa-sun"></i>
       </button>
     </div>
   </header>
@@ -62,7 +63,7 @@
       <!-- Search -->
       <div class="search-container">
         <div class="search-bar">
-          <i class="fa-solid fa-magnifying-glass"></i>
+          <i class="fa-solid fa-search"></i>
           <input
             id="searchInput"
             type="search"
@@ -88,24 +89,9 @@
         </button>
       </div>
 
-      <!-- Categories quick row -->
-      <div class="chip-row" aria-label="Quick categories">
-        <button
-          class="category-chip is-active"
-          data-category="all"
-          type="button"
-        >
-          All
-        </button>
-        <!-- JS will append more category chips here -->
-        <button
-          class="category-chip"
-          id="viewAllCategoriesBtn"
-          type="button"
-        >
-          <i class="fa-solid fa-grid-2"></i>
-          More
-        </button>
+      <!-- Categories row (ALL categories will be rendered here by JS) -->
+      <div class="chip-row" aria-label="Categories">
+        <!-- JS will populate: All + each category-chip -->
       </div>
 
       <!-- Stats + Sort -->
@@ -122,6 +108,10 @@
               <option value="title-desc">Title (Z–A)</option>
               <option value="author-asc">Author (A–Z)</option>
               <option value="author-desc">Author (Z–A)</option>
+              <option value="size-asc">File size (small–big)</option>
+              <option value="size-desc">File size (big–small)</option>
+              <option value="pages-asc">Pages (few–many)</option>
+              <option value="pages-desc">Pages (many–few)</option>
             </select>
           </label>
         </div>
@@ -189,16 +179,33 @@
 
         <p id="modalBookDescription" class="book-description"></p>
 
+        <!-- extra details from sheet -->
+        <p id="modalDetailsLine" class="modal-details-line"></p>
+
         <div id="modalBookTags" class="tags-row"></div>
 
         <div class="modal-footer">
+          <!-- Get PDF button (left) -->
+          <button
+            id="modalPdfBtn"
+            type="button"
+            class="btn modal-pdf-btn"
+          >
+            <i class="fa-solid fa-file-pdf"></i>
+            <span>Get PDF</span>
+          </button>
+
+          <!-- Bookmark button -->
           <button
             id="modalBookmarkBtn"
             type="button"
+            class="btn"
           >
             <i class="fa-regular fa-bookmark"></i>
             <span>Bookmark</span>
           </button>
+
+          <!-- Close button -->
           <button
             id="modalCloseBtn"
             class="btn-outline"
@@ -213,7 +220,7 @@
   </div>
 
   <!-- =========================
-       CATEGORIES MODAL
+       CATEGORIES MODAL (optional full list)
        ========================= -->
   <div
     id="categoriesModal"
@@ -289,7 +296,7 @@
           <input
             id="advTagsInput"
             type="text"
-            placeholder="Comma-separated tags"
+            placeholder="e.g. PDF,10 MB,150 PAGES"
           />
         </label>
 
@@ -328,6 +335,7 @@
           type="button"
           id="navHomeBtn"
           aria-label="All books"
+          class="active"
         >
           <i class="fa-solid fa-book"></i>
         </button>
@@ -338,7 +346,7 @@
           id="navSearchBtn"
           aria-label="Search"
         >
-          <i class="fa-solid fa-magnifying-glass"></i>
+          <i class="fa-solid fa-search"></i>
         </button>
       </li>
       <li>
