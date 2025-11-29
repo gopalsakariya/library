@@ -1,8 +1,10 @@
 /* ============================================
-   Library App - UI Refresh Version (Option B)
+   Library App - Light Neon Version
    - Google Sheet data source
-   - Search, categories, bookmarks, pagination
-   - Dark / light theme with CSS variables
+   - Search, advanced search, categories
+   - Bookmarks, pagination
+   - Get PDF buttons (card + modal)
+   - Sort by title, author, file size (MB), pages
 ============================================ */
 
 /* 1. GOOGLE SHEET CONFIG */
@@ -11,9 +13,9 @@ const SHEET_TAB = "Sheet1";
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
 /* 2. STATE */
-let allBooks = [];          // all books loaded from sheet
-let categories = [];        // list of { name, count }
-let bookmarks = [];         // array of bookmark keys
+let allBooks = [];          // all books from sheet
+let categories = [];        // { name, count }
+let bookmarks = [];         // list of bookmark keys
 let currentCategory = "all";
 let searchQuery = "";
 let sortOption = "title-asc";
@@ -36,7 +38,6 @@ const searchClearBtn = document.getElementById("searchClearBtn");
 const advancedSearchBtn = document.getElementById("advancedSearchBtn");
 
 const chipRow = document.querySelector(".chip-row");
-const viewAllCategoriesBtn = document.getElementById("viewAllCategoriesBtn");
 const categoriesListEl = document.getElementById("categoriesList");
 
 const sortSelect = document.getElementById("sortSelect");
@@ -52,6 +53,8 @@ const modalBookMeta = document.getElementById("modalBookMeta");
 const modalBookDescription = document.getElementById("modalBookDescription");
 const modalBookTags = document.getElementById("modalBookTags");
 const modalBookmarkBtn = document.getElementById("modalBookmarkBtn");
+const modalPdfBtn = document.getElementById("modalPdfBtn");
+const modalDetailsLine = document.getElementById("modalDetailsLine");
 
 const categoriesModal = document.getElementById("categoriesModal");
 const searchOverlay = document.getElementById("searchOverlay");
@@ -77,33 +80,17 @@ function getModalRoot(child) {
 }
 
 /* ============================================
-   THEME HANDLING
+   THEME (FIXED LIGHT)
 ============================================ */
-function applyTheme(theme) {
-  const root = document.documentElement;
-  const normalized = theme === "light" ? "light" : "dark";
-
-  root.setAttribute("data-theme", normalized);
-  localStorage.setItem("theme", normalized);
-
-  if (metaThemeColor) {
-    metaThemeColor.setAttribute(
-      "content",
-      normalized === "dark" ? "#0b1220" : "#f9fafb"
-    );
-  }
-
-  if (themeToggle) {
-    themeToggle.innerHTML =
-      normalized === "dark"
-        ? '<i class="fa-solid fa-moon"></i>'
-        : '<i class="fa-solid fa-sun"></i>';
-  }
-}
-
 function initTheme() {
-  const stored = localStorage.getItem("theme");
-  applyTheme(stored || "dark");
+  // Always light; just set meta theme color once
+  if (metaThemeColor) {
+    metaThemeColor.setAttribute("content", "#f4f4ff");
+  }
+  // Theme toggle button currently does nothing important; you can repurpose later if you want
+  if (themeToggle) {
+    themeToggle.innerHTML = '<i class="fa-solid fa-sun"></i>';
+  }
 }
 
 /* ============================================
@@ -154,6 +141,43 @@ function toggleBookmark(book) {
   saveBookmarks();
 }
 
+/* Parse tags to get numeric MB and pages
+   Expecting something like: "PDF,10 MB,150 PAGES"
+*/
+function parseTagsAndNumbers(rawTags) {
+  const tags = (rawTags || "")
+    .split(",")
+    .map(t => t.trim())
+    .filter(Boolean);
+
+  let fileSizeMb = null;
+  let pages = null;
+
+  tags.forEach(tag => {
+    const lower = tag.toLowerCase();
+
+    // match "... MB"
+    if (lower.includes("mb")) {
+      const m = lower.match(/([\d.]+)/);
+      if (m && m[1]) {
+        const val = parseFloat(m[1]);
+        if (!isNaN(val)) fileSizeMb = val;
+      }
+    }
+
+    // match "... pages" or "pg"
+    if (lower.includes("page")) {
+      const m = lower.match(/(\d+)/);
+      if (m && m[1]) {
+        const val = parseInt(m[1], 10);
+        if (!isNaN(val)) pages = val;
+      }
+    }
+  });
+
+  return { tags, fileSizeMb, pages };
+}
+
 /* convert Google Sheet row to book object */
 function mapRowToBook(row) {
   const title = (row.title || "").trim();
@@ -162,23 +186,20 @@ function mapRowToBook(row) {
   const description = (row.description || "").trim();
   const details = (row.details || "").trim();
   const rawTags = (row.tags || "").trim();
-  const tags = rawTags
-    ? rawTags.split(",").map(t => t.trim()).filter(Boolean)
-    : [];
 
-  // URL for PDF or external link
-  const pdfUrl = (row.pdfurl || row.pdf || row.url || "").trim();
+  const { tags, fileSizeMb, pages } = parseTagsAndNumbers(rawTags);
+
+  const pdfUrl = (
+    row.pdfurl ||
+    row.pdf ||
+    row.url ||
+    ""
+  ).trim();
 
   const coverRaw = (row.cover || "").trim();
   let cover = coverRaw;
   if (!cover) {
     cover = "img/book.jpg";
-  } else if (
-    !cover.startsWith("http://") &&
-    !cover.startsWith("https://")
-  ) {
-    // treat as local/relative
-    cover = cover;
   }
 
   return {
@@ -189,7 +210,9 @@ function mapRowToBook(row) {
     details,
     tags,
     pdfUrl,
-    cover
+    cover,
+    fileSizeMb,
+    pages
   };
 }
 
@@ -211,7 +234,7 @@ function applyBooks(rows) {
     .sort((a, b) => counts[b] - counts[a])
     .map(name => ({ name, count: counts[name] }));
 
-  renderTopCategories();
+  renderCategoriesRow();
   renderCategoriesModal();
 
   if (totalBooksCountEl) {
@@ -250,7 +273,7 @@ function loadBooks() {
     applyBooks(cached);
   }
 
-  // always try to fetch latest
+  // always fetch latest
   fetch(SHEET_URL)
     .then(res => res.json())
     .then(rows => {
@@ -282,12 +305,12 @@ function applyFiltersAndSort() {
     list = list.filter(b => normalize(b.category) === catNorm);
   }
 
-  // basic search
+  // main search
   const q = normalize(searchQuery);
   if (q) {
     list = list.filter(b => {
       const haystack =
-        `${b.title} ${b.author} ${b.category} ${b.description} ${(b.tags || []).join(" ")}`;
+        `${b.title} ${b.author} ${b.category} ${b.description} ${b.details} ${(b.tags || []).join(" ")}`;
       return haystack.toLowerCase().includes(q);
     });
   }
@@ -318,7 +341,7 @@ function applyFiltersAndSort() {
     list = list.filter(b => normalize(b.category).includes(c));
   }
 
-  // sort
+  // sorting
   list.sort((a, b) => {
     switch (sortOption) {
       case "title-asc":
@@ -329,6 +352,29 @@ function applyFiltersAndSort() {
         return a.author.localeCompare(b.author);
       case "author-desc":
         return b.author.localeCompare(a.author);
+
+      case "size-asc": {
+        const aSize = a.fileSizeMb != null ? a.fileSizeMb : Number.MAX_VALUE;
+        const bSize = b.fileSizeMb != null ? b.fileSizeMb : Number.MAX_VALUE;
+        return aSize - bSize;
+      }
+      case "size-desc": {
+        const aSize = a.fileSizeMb != null ? a.fileSizeMb : -1;
+        const bSize = b.fileSizeMb != null ? b.fileSizeMb : -1;
+        return bSize - aSize;
+      }
+
+      case "pages-asc": {
+        const aPages = a.pages != null ? a.pages : Number.MAX_VALUE;
+        const bPages = b.pages != null ? b.pages : Number.MAX_VALUE;
+        return aPages - bPages;
+      }
+      case "pages-desc": {
+        const aPages = a.pages != null ? a.pages : -1;
+        const bPages = b.pages != null ? b.pages : -1;
+        return bPages - aPages;
+      }
+
       default:
         return a.title.localeCompare(b.title);
     }
@@ -382,6 +428,26 @@ function renderBooksGrid() {
 
     const bookmarked = isBookBookmarked(book);
 
+    const detailsHtml = book.details
+      ? `<p class="book-details">${book.details}</p>`
+      : "";
+
+    const badgesHtml =
+      book.tags && book.tags.length
+        ? `<div class="badge-row">
+            ${book.tags.map(t => `<span class="badge">${t}</span>`).join("")}
+           </div>`
+        : "";
+
+    const pdfBtnHtml = book.pdfUrl
+      ? `
+        <button class="btn card-pdf-btn" type="button">
+          <i class="fa-solid fa-file-pdf"></i>
+          <span>Get PDF</span>
+        </button>
+      `
+      : "";
+
     card.innerHTML = `
       <div class="book-card-cover">
         <img src="${book.cover}" alt="${book.title}" loading="lazy" />
@@ -390,27 +456,36 @@ function renderBooksGrid() {
         <h3 class="book-title">${book.title}</h3>
         <p class="book-author">${book.author}</p>
         <p class="book-category">${book.category || ""}</p>
-        <div class="book-tags">
-          ${(book.tags || [])
-            .slice(0, 3)
-            .map(t => `<span class="tag">${t}</span>`)
-            .join("")}
-        </div>
+        ${detailsHtml}
+        ${badgesHtml}
       </div>
       <button class="book-card-bookmark" type="button" aria-label="Toggle bookmark">
         <i class="${bookmarked ? "fa-solid" : "fa-regular"} fa-bookmark"></i>
       </button>
+      ${pdfBtnHtml}
     `;
 
-    // click anywhere on card except bookmark button -> open modal
     const bookmarkBtn = card.querySelector(".book-card-bookmark");
-    bookmarkBtn.addEventListener("click", evt => {
-      evt.stopPropagation();
-      toggleBookmark(book);
-      // re-render to update icons & counts
-      updateView();
-    });
+    const pdfBtn = card.querySelector(".card-pdf-btn");
 
+    // Prevent card click from firing when clicking bookmark
+    if (bookmarkBtn) {
+      bookmarkBtn.addEventListener("click", evt => {
+        evt.stopPropagation();
+        toggleBookmark(book);
+        updateView();
+      });
+    }
+
+    // Card "Get PDF" button
+    if (pdfBtn) {
+      pdfBtn.addEventListener("click", evt => {
+        evt.stopPropagation();
+        openPdf(book);
+      });
+    }
+
+    // Clicking card opens modal
     card.addEventListener("click", () => {
       openBookModal(book);
     });
@@ -458,41 +533,44 @@ function renderPagination(totalPages) {
   paginationEl.appendChild(nextBtn);
 }
 
-function renderTopCategories() {
+/* Render ALL categories in row (no "More" button) */
+function renderCategoriesRow() {
   if (!chipRow) return;
 
-  // keep the "All" + "More" buttons, remove dynamic chips in between
-  const allBtn = chipRow.querySelector("[data-category='all']");
-  const moreBtn = document.getElementById("viewAllCategoriesBtn");
-
   chipRow.innerHTML = "";
-  if (allBtn) chipRow.appendChild(allBtn);
-  if (moreBtn) chipRow.appendChild(moreBtn);
 
-  // top 5 categories
-  const top = categories.slice(0, 5);
-  top.forEach(cat => {
+  // "All" chip
+  const allBtn = document.createElement("button");
+  allBtn.type = "button";
+  allBtn.className = "category-chip";
+  allBtn.dataset.category = "all";
+  allBtn.textContent = "All";
+  if (currentCategory === "all") {
+    allBtn.classList.add("is-active");
+  }
+  allBtn.addEventListener("click", () => {
+    setCategory("all");
+  });
+  chipRow.appendChild(allBtn);
+
+  // Every category as chip
+  categories.forEach(cat => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "category-chip";
     btn.dataset.category = cat.name;
     btn.textContent = `${cat.name} (${cat.count})`;
+    if (currentCategory === cat.name) {
+      btn.classList.add("is-active");
+    }
     btn.addEventListener("click", () => {
       setCategory(cat.name);
     });
-
-    chipRow.insertBefore(btn, moreBtn || null);
+    chipRow.appendChild(btn);
   });
-
-  // wire All chip again (in case DOM lost events)
-  if (allBtn) {
-    allBtn.classList.add("is-active");
-    allBtn.addEventListener("click", () => {
-      setCategory("all");
-    });
-  }
 }
 
+/* Categories modal list (if you still use it) */
 function renderCategoriesModal() {
   if (!categoriesListEl) return;
   categoriesListEl.innerHTML = "";
@@ -512,9 +590,14 @@ function renderCategoriesModal() {
 }
 
 /* ============================================
-   BOOK MODAL
+   BOOK MODAL + PDF OPEN
 ============================================ */
 let currentModalBook = null;
+
+function openPdf(book) {
+  if (!book || !book.pdfUrl) return;
+  window.open(book.pdfUrl, "_blank");
+}
 
 function openBookModal(book) {
   currentModalBook = book;
@@ -526,29 +609,51 @@ function openBookModal(book) {
   if (modalBookTitle) modalBookTitle.textContent = book.title;
   if (modalBookAuthor) modalBookAuthor.textContent = book.author;
 
+  // category + maybe small detail in same line
   if (modalBookMeta) {
     const parts = [];
     if (book.category) parts.push(book.category);
-    if (book.details) parts.push(book.details);
+    if (book.fileSizeMb != null) parts.push(`${book.fileSizeMb} MB`);
+    if (book.pages != null) parts.push(`${book.pages} pages`);
     modalBookMeta.textContent = parts.join(" • ");
   }
 
   if (modalBookDescription) {
-    modalBookDescription.textContent = book.description || "No description available.";
+    modalBookDescription.textContent =
+      book.description || "No description available.";
   }
 
+  // extra details line
+  if (modalDetailsLine) {
+    modalDetailsLine.textContent = book.details || "";
+  }
+
+  // tags in modal
   if (modalBookTags) {
-    modalBookTags.innerHTML = (book.tags || [])
-      .map(t => `<span class="tag">${t}</span>`)
-      .join("");
+    modalBookTags.innerHTML =
+      (book.tags || [])
+        .map(t => `<span class="tag">${t}</span>`)
+        .join("") || "";
   }
 
+  // modal bookmark button
   if (modalBookmarkBtn) {
     const bookmarked = isBookBookmarked(book);
     modalBookmarkBtn.innerHTML = `
       <i class="${bookmarked ? "fa-solid" : "fa-regular"} fa-bookmark"></i>
       <span>${bookmarked ? "Remove bookmark" : "Bookmark"}</span>
     `;
+  }
+
+  // modal PDF button
+  if (modalPdfBtn) {
+    if (book.pdfUrl) {
+      modalPdfBtn.style.display = "inline-flex";
+      modalPdfBtn.onclick = () => openPdf(book);
+    } else {
+      modalPdfBtn.style.display = "none";
+      modalPdfBtn.onclick = null;
+    }
   }
 
   openModal(bookModal);
@@ -585,7 +690,6 @@ function setCategory(catName) {
     });
   }
 
-  // update bookmarks nav state
   if (navBookmarksBtn) {
     navBookmarksBtn.classList.toggle("active", catName === "__bookmarks__");
   }
@@ -603,7 +707,7 @@ function updateView() {
   renderBooksGrid();
 }
 
-/* main init */
+/* Main init */
 function init() {
   initTheme();
   loadBookmarks();
@@ -633,14 +737,6 @@ function init() {
     });
   }
 
-  // theme toggle
-  if (themeToggle) {
-    themeToggle.addEventListener("click", () => {
-      const curr = document.documentElement.getAttribute("data-theme") || "dark";
-      applyTheme(curr === "dark" ? "light" : "dark");
-    });
-  }
-
   // reset filters
   if (resetFiltersBtn) {
     resetFiltersBtn.addEventListener("click", () => {
@@ -650,26 +746,12 @@ function init() {
       currentPage = 1;
 
       if (searchInput) searchInput.value = "";
-      if (chipRow) {
-        const chips = chipRow.querySelectorAll(".category-chip");
-        chips.forEach(ch => {
-          const cat = ch.dataset.category || "";
-          ch.classList.toggle("is-active", cat === "all");
-        });
-      }
-
+      renderCategoriesRow(); // reset active chip
       updateView();
     });
   }
 
-  // view all categories (modal)
-  if (viewAllCategoriesBtn) {
-    viewAllCategoriesBtn.addEventListener("click", () => {
-      openModal(categoriesModal);
-    });
-  }
-
-  // modal close handlers (any element with data-modal-close attribute)
+  // modal close handlers
   document.addEventListener("click", evt => {
     const closeTarget = evt.target.closest("[data-modal-close]");
     if (closeTarget) {
@@ -681,7 +763,7 @@ function init() {
     }
   });
 
-  // click on overlay closes modal
+  // click overlay closes modal
   document.addEventListener("click", evt => {
     const overlay = evt.target.closest(".modal-overlay");
     if (overlay) {
@@ -695,8 +777,8 @@ function init() {
     modalBookmarkBtn.addEventListener("click", () => {
       if (!currentModalBook) return;
       toggleBookmark(currentModalBook);
-      openBookModal(currentModalBook); // re-render button state
-      updateView(); // update cards
+      openBookModal(currentModalBook); // re-render state
+      updateView();
     });
   }
 
@@ -720,7 +802,6 @@ function init() {
       advTags = advTagsInput.value.trim();
       advCategory = advCategoryInput.value.trim();
 
-      // optional: also put main search = title
       if (searchInput && advTitle) {
         searchInput.value = advTitle;
         searchQuery = advTitle;
@@ -752,7 +833,10 @@ function init() {
       if (searchInput) searchInput.value = "";
       searchQuery = "";
       currentPage = 1;
+      renderCategoriesRow();
       updateView();
+      if (navHomeBtn) navHomeBtn.classList.add("active");
+      if (navBookmarksBtn) navBookmarksBtn.classList.remove("active");
     });
   }
   if (navBookmarksBtn) {
@@ -760,6 +844,8 @@ function init() {
       currentCategory = "__bookmarks__";
       currentPage = 1;
       updateView();
+      navBookmarksBtn.classList.add("active");
+      if (navHomeBtn) navHomeBtn.classList.remove("active");
     });
   }
   if (navCategoriesBtn) {
