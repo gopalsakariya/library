@@ -13,7 +13,8 @@ const books = [];
 /* Cover helper: supports URLs and local paths */
 function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
-  if (!cover) return ""; // IMPORTANT: empty means "no cover" so we can generate from PDF
+  // IMPORTANT: if no cover, return empty string so we know to generate from PDF
+  if (!cover) return "";
   if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
   return cover; // treat as relative/local path (e.g. img/book1.png)
 }
@@ -27,16 +28,22 @@ const pdfCoverCache = new Map(); // pdfUrl -> dataURL
 async function renderPdfFirstPageToImage(pdfUrl) {
   if (!pdfUrl) return null;
 
+  // Cache to avoid reloading same PDF
   if (pdfCoverCache.has(pdfUrl)) {
     return pdfCoverCache.get(pdfUrl);
   }
 
   try {
-    if (!window["pdfjsLib"]) return null;
-    const pdfjsLib = window["pdfjsLib"];
+    const pdfjsLib = window.pdfjsLib;
+    if (!pdfjsLib) {
+      console.warn("pdfjsLib is not available. Check pdf.js script tag.");
+      return null;
+    }
+
+    // Worker from pdf.js v2.16.105
     if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.js";
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
     }
 
     const loadingTask = pdfjsLib.getDocument(pdfUrl);
@@ -118,7 +125,6 @@ function mapRowToBook(row) {
 
   // direct URL for PDF (Cloudflare R2, etc.)
   const pdfurl = (row.pdfurl || row.pdf || row.url || "").trim();
-
   const viewLink = pdfurl || "#";
 
   const cover = getCoverPath(row.cover);
