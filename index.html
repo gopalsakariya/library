@@ -1,8 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#0b1220" />
   <meta charset="UTF-8" />
   <title>Library.TheGopal.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,7 +19,8 @@
 <header>
   <h1>Library.TheGopal.com</h1>
   <div class="header-right">
-    <button id="themeToggle" class="theme-toggle" type="button" title="Toggle dark / light">
+    <!-- (Theme toggle button; currently visual only in this JS version) -->
+    <button id="themeToggle" class="theme-toggle" type="button" title="Toggle theme">
       <i class="fa-regular fa-moon"></i>
     </button>
   </div>
@@ -29,7 +28,7 @@
 
 <main>
 
-  <!-- SEARCH BAR -->
+  <!-- SEARCH BAR (centered container) -->
   <section id="search">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
@@ -41,59 +40,48 @@
       </button>
     </div>
 
-    <!-- Legacy row kept only for spacing if needed (no controls here) -->
-    <div id="filterRow"></div>
-
     <div id="resultsInfo"></div>
   </section>
 
   <!-- UNIFIED CONTROLS ROW: All / Bookmarked / Categories / Filters / Sort / View -->
   <section id="categories">
-    <!-- Left side: All, Bookmarked, dynamic categories (filled by JS) -->
-    <div id="categories-left">
-      <!-- JS will populate these buttons -->
-      <!-- Example (JS output):
-        <button class="category-btn" data-category="all">All</button>
-        <button class="category-btn" data-category="bookmarked">Bookmarked</button>
-        <button class="category-btn" data-category="Fiction">Fiction</button>
-      -->
-    </div>
+    <div id="categories-inner">
+      <!-- Left side: All, Bookmarked, dynamic categories (filled by JS) -->
+      <div id="categories-left"></div>
 
-    <!-- Right side: Filters, Sort icon, View switch -->
-    <div id="categories-right">
-      <button id="filtersButton" class="filters-btn" type="button">
-        <i class="fa-solid fa-sliders"></i>
-        Filters
-      </button>
-
-      <button id="sortInlineButton" class="sort-inline-btn" type="button" title="Sort">
-        <i class="fa-solid fa-arrow-down-wide-short"></i>
-      </button>
-
-      <div id="viewSwitch">
-        <button class="view-btn active" data-view="grid" title="Grid view">
-          <i class="fa-solid fa-border-all"></i>
+      <!-- Right side: Filters, Sort icon, View toggle -->
+      <div id="categories-right">
+        <!-- Filters opens popup with size + length only -->
+        <button id="filtersButton" class="filters-btn" type="button">
+          <i class="fa-solid fa-sliders"></i>
+          Filters
         </button>
-        <button class="view-btn" data-view="list" title="List view">
-          <i class="fa-solid fa-list"></i>
+
+        <!-- Sort icon (dropdown built by JS) -->
+        <button
+          id="sortInlineButton"
+          class="sort-inline-btn"
+          type="button"
+          title="Sort"
+        >
+          <i class="fa-solid fa-arrow-down-wide-short"></i>
         </button>
+
+        <!-- View switch (grid / list) -->
+        <div id="viewSwitch">
+          <button class="view-btn active" data-view="grid" title="Grid view">
+            <i class="fa-solid fa-border-all"></i>
+          </button>
+          <button class="view-btn" data-view="list" title="List view">
+            <i class="fa-solid fa-list"></i>
+          </button>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- BOOKS GRID/LIST -->
+  <!-- BOOKS GRID/LIST (centered) -->
   <section id="all-books">
-
-    <!-- Pagination -->
-    <div id="paginationControls" class="pagination hidden">
-      <button id="prevPage" type="button">
-        <i class="fa-solid fa-angle-left"></i>
-      </button>
-      <span id="pageInfo"></span>
-      <button id="nextPage" type="button">
-        <i class="fa-solid fa-angle-right"></i>
-      </button>
-    </div>
 
     <div id="booksContainer" class="books-grid"></div>
 
@@ -108,21 +96,7 @@
       </div>
     </div>
 
-    <!-- CATEGORY SELECT MODAL (used by mobile nav Categories button) -->
-    <div id="categoryModal" class="modal hidden">
-      <div class="modal-overlay"></div>
-      <div class="modal-dialog category-dialog">
-        <button class="modal-close" type="button" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="modal-body">
-          <h3>Select category</h3>
-          <div id="categoryList" class="category-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- FILTERS MODAL (size, pages, sort) -->
+    <!-- FILTERS MODAL (size + pages only) -->
     <div id="filtersModal" class="modal hidden">
       <div class="modal-overlay"></div>
       <div class="modal-dialog filters-dialog">
@@ -158,20 +132,6 @@
             </select>
           </div>
 
-          <div class="filters-group">
-            <label for="sortSelect">Sort by</label>
-            <select id="sortSelect" class="filters-select">
-              <option value="relevance">Relevance</option>
-              <option value="title">Title (A–Z)</option>
-              <option value="author">Author (A–Z)</option>
-              <option value="category">Category (A–Z)</option>
-              <option value="sizeAsc">Size (Small → Large)</option>
-              <option value="sizeDesc">Size (Large → Small)</option>
-              <option value="pagesAsc">Pages (Few → Many)</option>
-              <option value="pagesDesc">Pages (Many → Few)</option>
-            </select>
-          </div>
-
           <div class="filters-actions">
             <button id="clearFiltersButton" class="pill-button" type="button">
               Clear filters
@@ -192,7 +152,7 @@
   <p>© 2025 Library of TheGopal.com</p>
 </footer>
 
-<!-- Mobile bottom nav (shown only on small screens via CSS) -->
+<!-- Mobile bottom nav (visual only with this JS version) -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
   <button data-nav="home" title="Home">
     <i class="fa-solid fa-house nav-icon"></i>
@@ -209,13 +169,5 @@
 </nav>
 
 <script src="js/app.js"></script>
-
-<script>
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", function () {
-    navigator.serviceWorker.register("sw.js");
-  });
-}
-</script>
 </body>
 </html>
