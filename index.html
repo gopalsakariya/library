@@ -29,7 +29,7 @@
 
 <main>
 
-  <!-- SEARCH + FILTERS -->
+  <!-- SEARCH + VIEW SWITCH -->
   <section id="search">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
@@ -42,31 +42,6 @@
     </div>
 
     <div id="filterRow">
-      <select id="sizeFilter">
-        <option value="any">Any size</option>
-        <option value="small">&lt; 5 MB</option>
-        <option value="medium">5 - 20 MB</option>
-        <option value="large">&gt; 20 MB</option>
-      </select>
-
-      <select id="pagesFilter">
-        <option value="any">Any length</option>
-        <option value="short">&lt; 100 pages</option>
-        <option value="medium">100 - 300 pages</option>
-        <option value="long">&gt; 300 pages</option>
-      </select>
-
-      <select id="sortSelect">
-        <option value="relevance">Sort: Relevance</option>
-        <option value="title">Title (A–Z)</option>
-        <option value="author">Author (A–Z)</option>
-        <option value="category">Category (A–Z)</option>
-        <option value="sizeAsc">Size (Small → Large)</option>
-        <option value="sizeDesc">Size (Large → Small)</option>
-        <option value="pagesAsc">Pages (Few → Many)</option>
-        <option value="pagesDesc">Pages (Many → Few)</option>
-      </select>
-
       <div id="viewSwitch">
         <button class="view-btn active" data-view="grid" title="Grid view">
           <i class="fa-solid fa-border-all"></i>
@@ -75,16 +50,12 @@
           <i class="fa-solid fa-list"></i>
         </button>
       </div>
-
-      <button id="clearFiltersButton" class="pill-button" type="button" title="Reset size, length & sort">
-        Clear filters
-      </button>
     </div>
 
     <div id="resultsInfo"></div>
   </section>
 
-  <!-- CATEGORIES ROW -->
+  <!-- CATEGORIES + FILTERS BUTTON -->
   <section id="categories">
     <button class="category-btn active" data-category="all">All</button>
     <button class="category-btn" data-category="bookmarked">Bookmarked</button>
@@ -92,6 +63,10 @@
     <button class="category-btn" data-category="Fiction">Fiction</button>
     <button class="category-btn" data-category="History">History</button>
     <button class="category-btn" data-category="Geeta">Geeta</button>
+
+    <button id="filtersButton" class="category-btn filters-btn" type="button">
+      <i class="fa-solid fa-sliders"></i> Filters
+    </button>
   </section>
 
   <!-- BOOKS GRID/LIST -->
@@ -135,6 +110,68 @@
       </div>
     </div>
 
+    <!-- FILTERS MODAL -->
+    <div id="filtersModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog filters-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body">
+          <h3>Filters</h3>
+
+          <div class="filters-group">
+            <label for="sizeFilter">File size</label>
+            <select id="sizeFilter" class="filters-select">
+              <option value="any">Any size</option>
+              <option value="lt1">&lt; 1 MB</option>
+              <option value="1to100">1 - 100 MB</option>
+              <option value="100to200">100 - 200 MB</option>
+              <option value="200to500">200 - 500 MB</option>
+              <option value="500to1000">500 - 1000 MB</option>
+              <option value="gt1000">&gt; 1000 MB</option>
+            </select>
+          </div>
+
+          <div class="filters-group">
+            <label for="pagesFilter">Pages</label>
+            <select id="pagesFilter" class="filters-select">
+              <option value="any">Any length</option>
+              <option value="lt100">&lt; 100 pages</option>
+              <option value="100to200">100 - 200 pages</option>
+              <option value="200to500">200 - 500 pages</option>
+              <option value="500to1000">500 - 1000 pages</option>
+              <option value="1000to2000">1000 - 2000 pages</option>
+              <option value="gt2000">&gt; 2000 pages</option>
+            </select>
+          </div>
+
+          <div class="filters-group">
+            <label for="sortSelect">Sort by</label>
+            <select id="sortSelect" class="filters-select">
+              <option value="relevance">Relevance</option>
+              <option value="title">Title (A–Z)</option>
+              <option value="author">Author (A–Z)</option>
+              <option value="category">Category (A–Z)</option>
+              <option value="sizeAsc">Size (Small → Large)</option>
+              <option value="sizeDesc">Size (Large → Small)</option>
+              <option value="pagesAsc">Pages (Few → Many)</option>
+              <option value="pagesDesc">Pages (Many → Few)</option>
+            </select>
+          </div>
+
+          <div class="filters-actions">
+            <button id="clearFiltersButton" class="pill-button" type="button">
+              Clear filters
+            </button>
+            <button id="applyFiltersButton" class="pill-button primary" type="button">
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </section>
 
 </main>
@@ -143,7 +180,7 @@
   <p>© 2025 Library of TheGopal.com</p>
 </footer>
 
-<!-- Mobile bottom nav -->
+<!-- Mobile bottom nav (Android-style) -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
   <button data-nav="home" title="Home">
     <i class="fa-solid fa-house nav-icon"></i>
