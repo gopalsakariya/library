@@ -61,7 +61,6 @@ header h1 {
   font-size: 0.9rem;
 }
 
-/* small glow on hover */
 .theme-toggle:hover {
   box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.4);
 }
@@ -89,7 +88,7 @@ main {
 }
 
 /* =====================================================
-   SEARCH
+   SEARCH + FILTERS
 ===================================================== */
 
 #search {
@@ -139,13 +138,14 @@ main {
   opacity: 0.9;
 }
 
-/* Filters row under search */
+/* Filters row */
 
 #filterRow {
   margin-top: 0.5rem;
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
 }
 
 #filterRow select {
@@ -157,13 +157,35 @@ main {
   font-size: 0.8rem;
 }
 
-body:not(.dark) #filterRow select {
-  background: #ffffff;
-  border-color: #e5e7eb;
-  color: #111827;
+/* view switcher */
+#viewSwitch {
+  margin-left: auto;
+  display: flex;
+  gap: 0.25rem;
 }
 
-/* light mode */
+.view-btn {
+  border-radius: 999px;
+  border: 1px solid #374151;
+  background: #020617;
+  color: #9ca3af;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.view-btn.active {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+  color: #f9fafb;
+}
+
+/* light mode search/filters */
+
 body:not(.dark) #searchBar {
   background: #ffffff;
   border-color: #e5e7eb;
@@ -183,47 +205,19 @@ body:not(.dark) #clearSearchButton {
   color: #f9fafb;
 }
 
-#sortControls {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-#sortControls.hidden {
-  display: none;
-}
-
-#sortLabel {
-  font-size: 0.78rem;
-  color: #9ca3af;
-}
-
-.sort-btn {
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  background: #020617;
-  color: #e5e7eb;
-  padding: 0.35rem 0.55rem;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.sort-btn i {
-  font-size: 0.75rem;
-}
-
-.sort-btn.active {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
-}
-
-body:not(.dark) .sort-btn {
+body:not(.dark) #filterRow select {
   background: #ffffff;
-  border-color: #d1d5db;
+  border-color: #e5e7eb;
   color: #111827;
 }
 
+body:not(.dark) .view-btn {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #6b7280;
+}
+
+/* results text */
 #resultsInfo {
   margin-top: 0.2rem;
   font-size: 0.8rem;
@@ -270,7 +264,7 @@ body:not(.dark) .category-btn {
 }
 
 /* =====================================================
-   BOOKS GRID (ORIGINAL LAYOUT)
+   BOOKS GRID / LIST
 ===================================================== */
 
 #all-books {
@@ -285,6 +279,11 @@ body:not(.dark) .category-btn {
   flex-wrap: wrap;
   gap: 1.5rem;
   justify-content: flex-start;
+}
+
+/* when list view is active */
+.books-grid.list-view {
+  flex-direction: column;
 }
 
 /* Pagination */
@@ -316,7 +315,7 @@ body:not(.dark) .category-btn {
 }
 
 /* =====================================================
-   BOOK CARD (UNIFORM HEIGHT)
+   BOOK CARD
 ===================================================== */
 
 .book-card {
@@ -330,6 +329,14 @@ body:not(.dark) .category-btn {
   cursor: pointer;
   display: flex;
   flex-direction: column;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+/* list view card */
+.books-grid.list-view .book-card {
+  width: 100%;
+  flex-direction: row;
+  gap: 0.85rem;
 }
 
 .book-card:hover {
@@ -337,14 +344,7 @@ body:not(.dark) .category-btn {
   box-shadow: 0 16px 32px rgba(15, 23, 42, 0.8);
 }
 
-/* Mobile: 2 cards per row at minimum width */
-@media (max-width: 600px) {
-  .books-grid {
-    justify-content: center;
-  }
-}
-
-/* Bookmark */
+/* Bookmark button */
 
 .bookmark-btn {
   position: absolute;
@@ -364,15 +364,21 @@ body:not(.dark) .bookmark-btn {
   color: #111827;
 }
 
-/* Cover */
+/* Cover with fixed 2:3 ratio */
 
 .book-cover {
   width: 100%;
-  height: 150px;
+  aspect-ratio: 2 / 3;
   border-radius: 12px;
   object-fit: cover;
   margin-bottom: 0.55rem;
   border: 1px solid #111827;
+}
+
+/* list view cover smaller, left side */
+.books-grid.list-view .book-cover {
+  width: 110px;
+  margin-bottom: 0;
 }
 
 /* Info */
@@ -418,20 +424,37 @@ body:not(.dark) .bookmark-btn {
   -webkit-box-orient: vertical;
 }
 
+/* Card "Get PDF" button styled like popup */
+
 .book-links {
   margin-top: 0.45rem;
 }
 
 .book-links a {
-  font-size: 0.78rem;
-  text-decoration: none;
-  color: #93c5fd;
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.25rem;
+  justify-content: center;
+  gap: 0.3rem;
+  width: 100%;
+  border-radius: 999px;
+  border: none;
+  background: #111827;
+  color: #e5e7eb;
+  padding: 0.55rem 1rem;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.book-links a i {
+  font-size: 0.9rem;
+}
+
+.book-links a:hover {
+  opacity: 0.95;
 }
 
 /* light mode cards */
+
 body:not(.dark) .book-card {
   background: #ffffff;
   border-color: #e5e7eb;
@@ -440,6 +463,11 @@ body:not(.dark) .book-card {
 
 body:not(.dark) .book-category {
   color: #166534;
+}
+
+body:not(.dark) .book-links a {
+  background: #111827;
+  color: #f9fafb;
 }
 
 /* =====================================================
@@ -489,7 +517,7 @@ body:not(.dark) .book-category {
   cursor: pointer;
 }
 
-/* Body when popup open (prevent scroll jump) */
+/* Body when popup open */
 body.popup-open {
   overflow: hidden;
 }
@@ -502,9 +530,10 @@ body.popup-open {
   margin-bottom: 0.6rem;
 }
 
+/* 2:3 ratio here as well */
 .modal-cover {
-  width: 90px;
-  height: 120px;
+  width: 150px;
+  aspect-ratio: 2 / 3;
   border-radius: 12px;
   object-fit: cover;
   border: 1px solid #111827;
@@ -528,7 +557,7 @@ body.popup-open {
   opacity: 0.5;
 }
 
-/* Tags row in header */
+/* chips */
 
 .mac-tags {
   display: inline-flex;
@@ -544,41 +573,19 @@ body.popup-open {
   font-size: 0.7rem;
 }
 
-/* Tags (general style) */
+/* sections */
 
-.tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-}
-
-.tag-chip {
-  padding: 0.2rem 0.6rem;
-}
-
-/* Content */
 .modal-section {
   margin: 0.5rem 0;
   font-size: 0.8rem;
   line-height: 1.4;
 }
 
-/* Clamp long paragraphs to avoid big scroll */
 .modal-section p {
   margin: 0.1rem 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 6;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-/* File info can show multiple short lines */
-.modal-section h4 {
-  margin: 0 0 0.25rem;
-  font-size: 0.85rem;
-}
-
-/* Actions */
+/* actions */
 
 .modal-actions {
   display: flex;
@@ -671,7 +678,7 @@ footer {
   padding: 0.75rem 0.5rem 3rem;
 }
 
-/* MOBILE TWEAKS */
+/* MOBILE */
 
 @media (max-width: 768px) {
   header {
