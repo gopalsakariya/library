@@ -3,7 +3,7 @@
 <head>
 
 <link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#020014" />
+<meta name="theme-color" content="#0b1220" />
   <meta charset="UTF-8" />
   <title>Library.TheGopal.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,13 +14,24 @@
   rel="stylesheet"
   href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
 />
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
+/>
 
   <link rel="stylesheet" href="css/style.css" />
 </head>
+
 <body>
 
 <header>
   <h1>Library.TheGopal.com</h1>
+  <div class="header-right">
+    <!-- Theme toggle icon (moon/sun via JS) -->
+    <button id="themeToggle" class="theme-toggle" type="button" title="Toggle dark / light">
+      <i class="fa-regular fa-moon"></i>
+    </button>
+  </div>
 </header>
 
 <main>
@@ -37,126 +48,96 @@
       </button>
     </div>
 
-    <div id="sortControls">
-      <span class="sort-label">Sort by:</span>
-      <button class="sort-btn active" data-sort="relevance">
-        <i class="fa-solid fa-bolt"></i> Relevance
+    <div id="sortControls" class="hidden">
+      <span id="sortLabel">Sort:</span>
+      <button class="sort-btn active" data-sort="relevance" title="Sort by relevance">
+        <i class="fa-solid fa-bullseye"></i>
       </button>
-      <button class="sort-btn" data-sort="title">
-        <i class="fa-solid fa-arrow-down-a-z"></i> Title
+      <button class="sort-btn" data-sort="title" title="Sort by title">
+        <i class="fa-solid fa-font"></i>
       </button>
-      <button class="sort-btn" data-sort="author">
-        <i class="fa-solid fa-user-pen"></i> Author
+      <button class="sort-btn" data-sort="author" title="Sort by author">
+        <i class="fa-solid fa-user-pen"></i>
       </button>
-      <button class="sort-btn" data-sort="category">
-        <i class="fa-solid fa-layer-group"></i> Category
+      <button class="sort-btn" data-sort="category" title="Sort by category">
+        <i class="fa-solid fa-layer-group"></i>
       </button>
     </div>
 
     <div id="resultsInfo"></div>
+  </section>
 
-    <!-- Category chips -->
-    <div id="categories"></div>
+  <!-- CATEGORY BUTTON ROW -->
+  <section id="categories">
+    <button class="category-btn active" data-category="all">All</button>
+    <button class="category-btn" data-category="bookmarked">Bookmarked</button>
+    <button class="category-btn" data-category="Mahabharat">Mahabharat</button>
+    <button class="category-btn" data-category="Fiction">Fiction</button>
+    <button class="category-btn" data-category="History">History</button>
+    <button class="category-btn" data-category="Geeta">Geeta</button>
   </section>
 
   <!-- BOOKS GRID -->
-  <section id="booksSection">
-    <div id="booksContainer">
-      <p>Loading books...</p>
-    </div>
+  <section id="all-books">
 
-    <!-- PAGINATION CONTROLS -->
-    <div id="paginationControls" class="hidden">
-      <button id="prevPage" class="pagination-btn" disabled>
-        <i class="fa-solid fa-arrow-left-long"></i> Prev
+    <!-- Pagination controls -->
+    <div id="paginationControls" class="pagination hidden">
+      <button id="prevPage" type="button">
+        <i class="fa-solid fa-angle-left"></i>
       </button>
-      <span id="pageInfo">Page 1</span>
-      <button id="nextPage" class="pagination-btn" disabled>
-        Next <i class="fa-solid fa-arrow-right-long"></i>
+      <span id="pageInfo"></span>
+      <button id="nextPage" type="button">
+        <i class="fa-solid fa-angle-right"></i>
       </button>
     </div>
-  </section>
-</main>
 
-<!-- BOOK DETAILS MODAL -->
-<div id="bookModal" class="modal">
-  <div class="modal-overlay"></div>
-  <div class="modal-content">
-    <button class="modal-close" type="button">
-      <i class="fa-solid fa-xmark"></i> Close
-    </button>
-    <div class="modal-body">
-      <img src="" alt="Book cover" class="modal-cover" />
-      <div class="modal-info">
-        <h2>Title</h2>
-        <div class="modal-meta">Author · Category</div>
-        <div class="modal-description"></div>
-        <div class="modal-details"></div>
-        <div class="modal-tags"></div>
-        <div class="modal-actions">
-          <button class="modal-read-btn" type="button">
-            <i class="fa-solid fa-book-open-reader"></i> Read now
-          </button>
-          <button class="modal-download-btn" type="button">
-            <i class="fa-solid fa-download"></i> Download
-          </button>
+    <div id="booksContainer" class="books-grid"></div>
+
+    <!-- BOOK DETAILS MODAL -->
+    <div id="bookModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body"></div>
+      </div>
+    </div>
+
+    <!-- CATEGORY SELECT MODAL (for bottom nav "Categories") -->
+    <div id="categoryModal" class="modal hidden">
+      <div class="modal-overlay"></div>
+      <div class="modal-dialog category-dialog">
+        <button class="modal-close" type="button" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="modal-body">
+          <h3>Select category</h3>
+          <div id="categoryList" class="category-list"></div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+  </section>
 
-<!-- CATEGORY LIST MODAL -->
-<div id="categoryModal" class="modal">
-  <div class="modal-overlay"></div>
-  <div class="modal-content">
-    <button class="modal-close" type="button">
-      <i class="fa-solid fa-xmark"></i> Close
-    </button>
-    <div class="modal-body">
-      <div class="modal-info">
-        <h2>All Categories</h2>
-        <div class="category-list"></div>
-      </div>
-    </div>
-  </div>
-</div>
+</main>
 
-<!-- SEARCH OVERLAY (MOBILE) -->
-<div id="searchOverlay">
-  <div class="search-overlay-backdrop"></div>
-  <div class="search-overlay-panel">
-    <div class="search-overlay-row">
-      <input
-        id="searchOverlayInput"
-        type="text"
-        placeholder="Search books..."
-      />
-      <button id="searchOverlayClose" type="button">
-        <i class="fa-solid fa-xmark"></i>
-        Close
-      </button>
-    </div>
-  </div>
-</div>
+<footer>
+  <p>© 2025 Library of TheGopal.com</p>
+</footer>
 
-<!-- MOBILE BOTTOM NAV -->
-<nav class="mobile-bottom-nav">
-  <button data-nav="home" class="active" title="Home">
+<!-- Android-style bottom navigation (icons only) -->
+<nav id="mobileBottomNav" class="mobile-bottom-nav">
+  <button data-nav="home" title="Home">
     <i class="fa-solid fa-house nav-icon"></i>
-    <span>Home</span>
+  </button>
+  <button data-nav="bookmarks" title="Saved">
+    <i class="fa-solid fa-bookmark nav-icon"></i>
   </button>
   <button data-nav="categories" title="Categories">
     <i class="fa-solid fa-layer-group nav-icon"></i>
-    <span>Categories</span>
-  </button>
-  <button data-nav="bookmarks" title="Bookmarks">
-    <i class="fa-solid fa-bookmark nav-icon"></i>
-    <span>Bookmarks</span>
   </button>
   <button data-nav="search" title="Search">
     <i class="fa-solid fa-magnifying-glass nav-icon"></i>
-    <span>Search</span>
   </button>
 </nav>
 
