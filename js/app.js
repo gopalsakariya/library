@@ -30,6 +30,7 @@ const sortSelect = document.getElementById("sortSelect");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
 const applyFiltersButton = document.getElementById("applyFiltersButton");
 const filtersButton = document.getElementById("filtersButton");
+const sortInlineButton = document.getElementById("sortInlineButton");
 
 const viewSwitch = document.getElementById("viewSwitch");
 const viewButtons = viewSwitch
@@ -142,17 +143,7 @@ function mapRowToBook(row) {
   };
 }
 
-let historyInitialized = false;
-let exitConfirmShown = false;
 let firstDataApplied = false;
-
-function initHistory() {
-  if (historyInitialized) return;
-  if (!window.history || !window.history.replaceState) return;
-  historyInitialized = true;
-  history.replaceState({ screen: "home" }, "");
-  window.addEventListener("popstate", handleBackNavigation);
-}
 
 function applyBooksAndInit(newBooks) {
   const hadDataBefore = firstDataApplied;
@@ -168,8 +159,6 @@ function applyBooksAndInit(newBooks) {
   } else {
     changeCategory("all");
   }
-
-  initHistory();
 }
 
 function loadBooksFromSheet() {
@@ -351,62 +340,19 @@ function getAllCategories() {
   return [...set];
 }
 
-function renderTopCategories() {
-  if (!categoryRow) return;
-
-  const cats = getAllCategories().filter(
-    c => c !== "all" && c !== "bookmarked"
-  );
-
-  // keep existing filtersButton at the end, so rebuild only category buttons
-  const filtersBtnEl = document.getElementById("filtersButton");
-
-  categoryRow.innerHTML =
-    `
-    <button class="category-btn" data-category="all">All</button>
-    <button class="category-btn" data-category="bookmarked">Bookmarked</button>
-    ${cats
-      .map(
-        c => `<button class="category-btn" data-category="${c}">${c}</button>`
-      )
-      .join("")}
-  ` + (filtersBtnEl ? filtersBtnEl.outerHTML : "");
-
-  // regrab filtersButton reference because innerHTML recreated it
-  const newFiltersButton = document.getElementById("filtersButton");
-  if (newFiltersButton) {
-    newFiltersButton.addEventListener("click", () => {
-      openFiltersModal();
-    });
-  }
-
-  if (!categoryRow.dataset.bound) {
-    categoryRow.addEventListener("click", e => {
-      const btn = e.target.closest(".category-btn");
-      if (!btn || btn.id === "filtersButton") return;
-      const cat = btn.dataset.category || "all";
-      changeCategory(cat);
-    });
-    categoryRow.dataset.bound = "true";
-  }
-
-  const btns = categoryRow.querySelectorAll(".category-btn");
-  btns.forEach(btn => {
-    const bc = btn.dataset.category || "all";
-    if (btn.id === "filtersButton") return;
-    btn.classList.toggle("active", bc === currentCategory);
-  });
-
-  updateFiltersButtonActive();
+function updateFiltersButtonActive() {
+  if (!filtersButton) return;
+  const isActive =
+    currentSizeFilter !== "any" ||
+    currentPagesFilter !== "any" ||
+    currentSort !== "relevance";
+  filtersButton.classList.toggle("active", isActive);
 }
 
-function setActiveNav(navName) {
-  if (!mobileBottomNav) return;
-  const buttons = mobileBottomNav.querySelectorAll("button[data-nav]");
-  buttons.forEach(btn => {
-    const n = btn.dataset.nav;
-    btn.classList.toggle("nav-active", n === navName);
-  });
+function updateSortInlineButtonActive() {
+  if (!sortInlineButton) return;
+  const isActive = currentSort !== "relevance";
+  sortInlineButton.classList.toggle("active", isActive);
 }
 
 function resetFiltersToDefault() {
@@ -428,16 +374,78 @@ function resetFiltersToDefault() {
   }
 
   updateFiltersButtonActive();
+  updateSortInlineButtonActive();
 }
 
-function updateFiltersButtonActive() {
-  const btn = document.getElementById("filtersButton");
-  if (!btn) return;
-  const isActive =
-    currentSizeFilter !== "any" ||
-    currentPagesFilter !== "any" ||
-    currentSort !== "relevance";
-  btn.classList.toggle("active", isActive);
+function renderTopCategories() {
+  if (!categoryRow) return;
+
+  const cats = getAllCategories().filter(
+    c => c !== "all" && c !== "bookmarked"
+  );
+
+  // We assume HTML has placeholders for left/right groups and buttons.
+  // Here we only (re)build the category buttons; filters/sort/view stay in HTML.
+
+  const leftContainer = document.getElementById("categories-left");
+  const rightContainer = document.getElementById("categories-right");
+
+  if (leftContainer) {
+    leftContainer.innerHTML =
+      `
+      <button class="category-btn" data-category="all">All</button>
+      <button class="category-btn" data-category="bookmarked">Bookmarked</button>
+    ` +
+      cats
+        .map(
+          c =>
+            `<button class="category-btn" data-category="${c}">${c}</button>`
+        )
+        .join("");
+  } else {
+    // fallback: render everything directly to #categories (without left/right split)
+    categoryRow.innerHTML =
+      `
+      <button class="category-btn" data-category="all">All</button>
+      <button class="category-btn" data-category="bookmarked">Bookmarked</button>
+      ${cats
+        .map(
+          c =>
+            `<button class="category-btn" data-category="${c}">${c}</button>`
+        )
+        .join("")}
+    `;
+  }
+
+  // Rebind category click handler
+  if (!categoryRow.dataset.bound) {
+    categoryRow.addEventListener("click", e => {
+      const btn = e.target.closest(".category-btn");
+      if (!btn) return;
+      const cat = btn.dataset.category || "all";
+      changeCategory(cat);
+    });
+    categoryRow.dataset.bound = "true";
+  }
+
+  // Update active category button
+  const btns = categoryRow.querySelectorAll(".category-btn");
+  btns.forEach(btn => {
+    const bc = btn.dataset.category || "all";
+    btn.classList.toggle("active", bc === currentCategory);
+  });
+
+  updateFiltersButtonActive();
+  updateSortInlineButtonActive();
+}
+
+function setActiveNav(navName) {
+  if (!mobileBottomNav) return;
+  const buttons = mobileBottomNav.querySelectorAll("button[data-nav]");
+  buttons.forEach(btn => {
+    const n = btn.dataset.nav;
+    btn.classList.toggle("nav-active", n === navName);
+  });
 }
 
 function changeCategory(cat) {
@@ -446,7 +454,6 @@ function changeCategory(cat) {
   if (categoryRow) {
     const btns = categoryRow.querySelectorAll(".category-btn");
     btns.forEach(btn => {
-      if (btn.id === "filtersButton") return;
       const bc = btn.dataset.category || "all";
       btn.classList.toggle("active", bc === currentCategory);
     });
@@ -622,10 +629,6 @@ function updatePopupOpenClass() {
 }
 
 function openBookModal(book) {
-  if (window.history && window.history.pushState) {
-    history.pushState({ screen: "bookModal" }, "");
-  }
-
   const cover = book.cover || "img/book.jpg";
 
   const tagChips =
@@ -707,13 +710,7 @@ function openBookModal(book) {
     });
   }
 
-  const modalCover = modalBody.querySelector(".modal-cover");
-  if (modalCover && book.pdfUrl) {
-    modalCover.addEventListener("click", e => {
-      e.stopPropagation();
-      window.open(book.pdfUrl, "_blank", "noopener,noreferrer");
-    });
-  }
+  // NOTE: click on modal cover NO LONGER opens PDF (removed by request)
 }
 
 function closeBookModal() {
@@ -728,10 +725,6 @@ modalOverlay.addEventListener("click", closeBookModal);
 /* CATEGORY MODAL */
 
 function openCategoryModal() {
-  if (window.history && window.history.pushState) {
-    history.pushState({ screen: "categoryModal" }, "");
-  }
-
   const cats = getAllCategories();
   categoryList.innerHTML = cats
     .map(cat => {
@@ -768,9 +761,6 @@ categoryList.addEventListener("click", e => {
 /* FILTERS MODAL */
 
 function openFiltersModal() {
-  if (window.history && window.history.pushState) {
-    history.pushState({ screen: "filtersModal" }, "");
-  }
   filtersModal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
   updatePopupOpenClass();
@@ -786,7 +776,13 @@ filtersModalClose.addEventListener("click", closeFiltersModal);
 filtersModalOverlay.addEventListener("click", closeFiltersModal);
 
 if (filtersButton) {
-  filtersButton.addEventListener("click", () => {
+  filtersButton.addEventListener("click", openFiltersModal);
+}
+
+// inline sort button (icon button in row)
+if (sortInlineButton) {
+  sortInlineButton.addEventListener("click", () => {
+    // Open filters modal as a "sort shortcut"
     openFiltersModal();
   });
 }
@@ -841,9 +837,6 @@ function ensureSearchOverlay() {
 
 function openSearchOverlay() {
   ensureSearchOverlay();
-  if (window.history && window.history.pushState) {
-    history.pushState({ screen: "searchOverlay" }, "");
-  }
   searchOverlay.classList.remove("hidden");
   const overlayInput = searchOverlay.querySelector("#overlaySearchInput");
   if (overlayInput) {
@@ -944,13 +937,7 @@ function renderBooks() {
       toggleBookmark(book.title);
     });
 
-    const coverEl = card.querySelector(".book-cover");
-    if (coverEl && book.pdfUrl) {
-      coverEl.addEventListener("click", e => {
-        e.stopPropagation();
-        window.open(book.pdfUrl, "_blank", "noopener,noreferrer");
-      });
-    }
+    // NOTE: clicking card image no longer opens PDF (feature removed)
 
     card.addEventListener("click", () => {
       openBookModal(book);
@@ -1013,6 +1000,7 @@ if (sortSelect) {
     sortSelect.classList.toggle("active-filter", currentSort !== "relevance");
     currentPage = 1;
     updateFiltersButtonActive();
+    updateSortInlineButtonActive();
     renderBooks();
   });
 }
@@ -1092,69 +1080,81 @@ mobileBottomNav.addEventListener("click", e => {
 });
 
 /* ============================================
-   15. BACK BUTTON HANDLING
+   15. BACK BUTTON HANDLING (IMPROVED)
 ============================================ */
 
-function handleBackNavigation(event) {
-  const state = event.state || { screen: "home" };
-
-  if (state.screen === "home") {
-    if (!bookModal.classList.contains("hidden")) {
-      closeBookModal();
-      if (window.history && window.history.pushState) {
-        history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
-      }
-      return;
-    }
-
-    if (!categoryModal.classList.contains("hidden")) {
-      closeCategoryModal();
-      if (window.history && window.history.pushState) {
-        history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
-      }
-      return;
-    }
-
-    if (!filtersModal.classList.contains("hidden")) {
-      closeFiltersModal();
-      if (window.history && window.history.pushState) {
-        history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
-      }
-      return;
-    }
-
-    if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
-      closeSearchOverlay();
-      if (window.history && window.history.pushState) {
-        history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
-      }
-      return;
-    }
-
-    if (!exitConfirmShown) {
-      const leave = window.confirm("Do you want to leave the library app?");
-      if (leave) {
-        window.removeEventListener("popstate", handleBackNavigation);
-        if (window.history && window.history.back) {
-          history.back();
-        }
-      } else {
-        exitConfirmShown = true;
-        if (window.history && window.history.pushState) {
-          history.pushState({ screen: "home" }, "");
-        }
-      }
-    }
+/**
+ * Back button logic (Android physical / browser back):
+ * 1. If any popup is open (book, filters, categories, search) -> close popup.
+ * 2. Else if currentCategory is NOT "all" -> go to home ("all").
+ * 3. Else allow normal browser back (may leave the site).
+ */
+function handleBackButton(event) {
+  // 1. Close any open popup first
+  if (!bookModal.classList.contains("hidden")) {
+    closeBookModal();
+    history.pushState({ page: "library" }, "");
+    return;
   }
+
+  if (!filtersModal.classList.contains("hidden")) {
+    closeFiltersModal();
+    history.pushState({ page: "library" }, "");
+    return;
+  }
+
+  if (!categoryModal.classList.contains("hidden")) {
+    closeCategoryModal();
+    history.pushState({ page: "library" }, "");
+    return;
+  }
+
+  if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
+    closeSearchOverlay();
+    history.pushState({ page: "library" }, "");
+    return;
+  }
+
+  // 2. If currently not on "all" category (e.g., bookmarked or other), go home
+  if (currentCategory !== "all") {
+    changeCategory("all");
+    history.pushState({ page: "library" }, "");
+    return;
+  }
+
+  // 3. Already at home, no popup -> do not re-push state.
+  //    Browser will go back to previous page as normal.
 }
 
+// Initialize custom back-button handling
+if (window.history && window.history.pushState) {
+  // Add a dummy state so back button comes to us first.
+  history.pushState({ page: "library" }, "");
+  window.addEventListener("popstate", handleBackButton);
+}
+
+// ESC key to close popups
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
-    if (!bookModal.classList.contains("hidden")) closeBookModal();
-    if (!categoryModal.classList.contains("hidden")) closeCategoryModal();
-    if (!filtersModal.classList.contains("hidden")) closeFiltersModal();
+    let closed = false;
+    if (!bookModal.classList.contains("hidden")) {
+      closeBookModal();
+      closed = true;
+    }
+    if (!categoryModal.classList.contains("hidden")) {
+      closeCategoryModal();
+      closed = true;
+    }
+    if (!filtersModal.classList.contains("hidden")) {
+      closeFiltersModal();
+      closed = true;
+    }
     if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
       closeSearchOverlay();
+      closed = true;
+    }
+    if (closed && window.history && window.history.pushState) {
+      history.pushState({ page: "library" }, "");
     }
   }
 });
@@ -1164,3 +1164,6 @@ document.addEventListener("keydown", e => {
 ============================================ */
 
 loadBooksFromSheet();
+renderTopCategories();
+updateFiltersButtonActive();
+updateSortInlineButtonActive();
