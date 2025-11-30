@@ -28,6 +28,8 @@ const sizeFilterSelect = document.getElementById("sizeFilter");
 const pagesFilterSelect = document.getElementById("pagesFilter");
 const sortSelect = document.getElementById("sortSelect");
 const clearFiltersButton = document.getElementById("clearFiltersButton");
+const applyFiltersButton = document.getElementById("applyFiltersButton");
+const filtersButton = document.getElementById("filtersButton");
 
 const viewSwitch = document.getElementById("viewSwitch");
 const viewButtons = viewSwitch
@@ -53,6 +55,10 @@ const categoryModal = document.getElementById("categoryModal");
 const categoryModalOverlay = categoryModal.querySelector(".modal-overlay");
 const categoryModalClose = categoryModal.querySelector(".modal-close");
 const categoryList = document.getElementById("categoryList");
+
+const filtersModal = document.getElementById("filtersModal");
+const filtersModalOverlay = filtersModal.querySelector(".modal-overlay");
+const filtersModalClose = filtersModal.querySelector(".modal-close");
 
 const mobileBottomNav = document.getElementById("mobileBottomNav");
 const headerEl = document.querySelector("header");
@@ -352,7 +358,11 @@ function renderTopCategories() {
     c => c !== "all" && c !== "bookmarked"
   );
 
-  categoryRow.innerHTML = `
+  // keep existing filtersButton at the end, so rebuild only category buttons
+  const filtersBtnEl = document.getElementById("filtersButton");
+
+  categoryRow.innerHTML =
+    `
     <button class="category-btn" data-category="all">All</button>
     <button class="category-btn" data-category="bookmarked">Bookmarked</button>
     ${cats
@@ -360,12 +370,20 @@ function renderTopCategories() {
         c => `<button class="category-btn" data-category="${c}">${c}</button>`
       )
       .join("")}
-  `;
+  ` + (filtersBtnEl ? filtersBtnEl.outerHTML : "");
+
+  // regrab filtersButton reference because innerHTML recreated it
+  const newFiltersButton = document.getElementById("filtersButton");
+  if (newFiltersButton) {
+    newFiltersButton.addEventListener("click", () => {
+      openFiltersModal();
+    });
+  }
 
   if (!categoryRow.dataset.bound) {
     categoryRow.addEventListener("click", e => {
       const btn = e.target.closest(".category-btn");
-      if (!btn) return;
+      if (!btn || btn.id === "filtersButton") return;
       const cat = btn.dataset.category || "all";
       changeCategory(cat);
     });
@@ -375,8 +393,11 @@ function renderTopCategories() {
   const btns = categoryRow.querySelectorAll(".category-btn");
   btns.forEach(btn => {
     const bc = btn.dataset.category || "all";
+    if (btn.id === "filtersButton") return;
     btn.classList.toggle("active", bc === currentCategory);
   });
+
+  updateFiltersButtonActive();
 }
 
 function setActiveNav(navName) {
@@ -388,12 +409,44 @@ function setActiveNav(navName) {
   });
 }
 
+function resetFiltersToDefault() {
+  currentSizeFilter = "any";
+  currentPagesFilter = "any";
+  currentSort = "relevance";
+
+  if (sizeFilterSelect) {
+    sizeFilterSelect.value = "any";
+    sizeFilterSelect.classList.remove("active-filter");
+  }
+  if (pagesFilterSelect) {
+    pagesFilterSelect.value = "any";
+    pagesFilterSelect.classList.remove("active-filter");
+  }
+  if (sortSelect) {
+    sortSelect.value = "relevance";
+    sortSelect.classList.remove("active-filter");
+  }
+
+  updateFiltersButtonActive();
+}
+
+function updateFiltersButtonActive() {
+  const btn = document.getElementById("filtersButton");
+  if (!btn) return;
+  const isActive =
+    currentSizeFilter !== "any" ||
+    currentPagesFilter !== "any" ||
+    currentSort !== "relevance";
+  btn.classList.toggle("active", isActive);
+}
+
 function changeCategory(cat) {
   currentCategory = cat || "all";
 
   if (categoryRow) {
     const btns = categoryRow.querySelectorAll(".category-btn");
     btns.forEach(btn => {
+      if (btn.id === "filtersButton") return;
       const bc = btn.dataset.category || "all";
       btn.classList.toggle("active", bc === currentCategory);
     });
@@ -409,24 +462,9 @@ function changeCategory(cat) {
 
   currentSearch = "";
   searchInput.value = "";
-  currentSort = "relevance";
   currentPage = 1;
 
-  currentSizeFilter = "any";
-  currentPagesFilter = "any";
-  if (sizeFilterSelect) {
-    sizeFilterSelect.value = "any";
-    sizeFilterSelect.classList.remove("active-filter");
-  }
-  if (pagesFilterSelect) {
-    pagesFilterSelect.value = "any";
-    pagesFilterSelect.classList.remove("active-filter");
-  }
-  if (sortSelect) {
-    sortSelect.value = "relevance";
-    sortSelect.classList.remove("active-filter");
-  }
-
+  resetFiltersToDefault();
   renderBooks();
 }
 
@@ -444,30 +482,52 @@ function getFilteredBooks() {
       }
     }
 
+    // size filter: lt1, 1..100, 100..200, 200..500, 500..1000, gt1000
     if (currentSizeFilter !== "any") {
       const size = typeof book.sizeMB === "number" ? book.sizeMB : null;
       if (size == null) return { book, score: -1 };
-      if (currentSizeFilter === "small" && !(size < 5)) {
+
+      if (currentSizeFilter === "lt1" && !(size < 1)) {
         return { book, score: -1 };
       }
-      if (currentSizeFilter === "medium" && !(size >= 5 && size <= 20)) {
+      if (currentSizeFilter === "1to100" && !(size >= 1 && size <= 100)) {
         return { book, score: -1 };
       }
-      if (currentSizeFilter === "large" && !(size > 20)) {
+      if (currentSizeFilter === "100to200" && !(size >= 100 && size <= 200)) {
+        return { book, score: -1 };
+      }
+      if (currentSizeFilter === "200to500" && !(size >= 200 && size <= 500)) {
+        return { book, score: -1 };
+      }
+      if (currentSizeFilter === "500to1000" && !(size >= 500 && size <= 1000)) {
+        return { book, score: -1 };
+      }
+      if (currentSizeFilter === "gt1000" && !(size > 1000)) {
         return { book, score: -1 };
       }
     }
 
+    // pages filter: lt100, 100..200, 200..500, 500..1000, 1000..2000, gt2000
     if (currentPagesFilter !== "any") {
       const p = typeof book.pages === "number" ? book.pages : null;
       if (p == null) return { book, score: -1 };
-      if (currentPagesFilter === "short" && !(p < 100)) {
+
+      if (currentPagesFilter === "lt100" && !(p < 100)) {
         return { book, score: -1 };
       }
-      if (currentPagesFilter === "medium" && !(p >= 100 && p <= 300)) {
+      if (currentPagesFilter === "100to200" && !(p >= 100 && p <= 200)) {
         return { book, score: -1 };
       }
-      if (currentPagesFilter === "long" && !(p > 300)) {
+      if (currentPagesFilter === "200to500" && !(p >= 200 && p <= 500)) {
+        return { book, score: -1 };
+      }
+      if (currentPagesFilter === "500to1000" && !(p >= 500 && p <= 1000)) {
+        return { book, score: -1 };
+      }
+      if (currentPagesFilter === "1000to2000" && !(p >= 1000 && p <= 2000)) {
+        return { book, score: -1 };
+      }
+      if (currentPagesFilter === "gt2000" && !(p > 2000)) {
         return { book, score: -1 };
       }
     }
@@ -547,9 +607,10 @@ function getFilteredBooks() {
 function isAnyPopupOpen() {
   const bookOpen = !bookModal.classList.contains("hidden");
   const catOpen = !categoryModal.classList.contains("hidden");
+  const filtersOpen = !filtersModal.classList.contains("hidden");
   const searchOpen =
     searchOverlay && !searchOverlay.classList.contains("hidden");
-  return bookOpen || catOpen || searchOpen;
+  return bookOpen || catOpen || filtersOpen || searchOpen;
 }
 
 function updatePopupOpenClass() {
@@ -567,7 +628,6 @@ function openBookModal(book) {
 
   const cover = book.cover || "img/book.jpg";
 
-  // Build tags area: use raw tags (PDF, 197 KB, 61 Pages etc.)
   const tagChips =
     book.tags && book.tags.length
       ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
@@ -646,6 +706,14 @@ function openBookModal(book) {
         : '<i class="fa-regular fa-star"></i><span>Bookmark</span>';
     });
   }
+
+  const modalCover = modalBody.querySelector(".modal-cover");
+  if (modalCover && book.pdfUrl) {
+    modalCover.addEventListener("click", e => {
+      e.stopPropagation();
+      window.open(book.pdfUrl, "_blank", "noopener,noreferrer");
+    });
+  }
 }
 
 function closeBookModal() {
@@ -696,6 +764,32 @@ categoryList.addEventListener("click", e => {
   changeCategory(cat);
   closeCategoryModal();
 });
+
+/* FILTERS MODAL */
+
+function openFiltersModal() {
+  if (window.history && window.history.pushState) {
+    history.pushState({ screen: "filtersModal" }, "");
+  }
+  filtersModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  updatePopupOpenClass();
+}
+
+function closeFiltersModal() {
+  filtersModal.classList.add("hidden");
+  document.body.style.overflow = "";
+  updatePopupOpenClass();
+}
+
+filtersModalClose.addEventListener("click", closeFiltersModal);
+filtersModalOverlay.addEventListener("click", closeFiltersModal);
+
+if (filtersButton) {
+  filtersButton.addEventListener("click", () => {
+    openFiltersModal();
+  });
+}
 
 /* SEARCH OVERLAY (mobile) */
 
@@ -850,6 +944,14 @@ function renderBooks() {
       toggleBookmark(book.title);
     });
 
+    const coverEl = card.querySelector(".book-cover");
+    if (coverEl && book.pdfUrl) {
+      coverEl.addEventListener("click", e => {
+        e.stopPropagation();
+        window.open(book.pdfUrl, "_blank", "noopener,noreferrer");
+      });
+    }
+
     card.addEventListener("click", () => {
       openBookModal(book);
     });
@@ -887,6 +989,7 @@ if (sizeFilterSelect) {
       currentSizeFilter !== "any"
     );
     currentPage = 1;
+    updateFiltersButtonActive();
     renderBooks();
   });
 }
@@ -899,6 +1002,7 @@ if (pagesFilterSelect) {
       currentPagesFilter !== "any"
     );
     currentPage = 1;
+    updateFiltersButtonActive();
     renderBooks();
   });
 }
@@ -908,6 +1012,7 @@ if (sortSelect) {
     currentSort = sortSelect.value || "relevance";
     sortSelect.classList.toggle("active-filter", currentSort !== "relevance");
     currentPage = 1;
+    updateFiltersButtonActive();
     renderBooks();
   });
 }
@@ -916,25 +1021,17 @@ if (sortSelect) {
 
 if (clearFiltersButton) {
   clearFiltersButton.addEventListener("click", () => {
-    currentSizeFilter = "any";
-    currentPagesFilter = "any";
-    currentSort = "relevance";
-
-    if (sizeFilterSelect) {
-      sizeFilterSelect.value = "any";
-      sizeFilterSelect.classList.remove("active-filter");
-    }
-    if (pagesFilterSelect) {
-      pagesFilterSelect.value = "any";
-      pagesFilterSelect.classList.remove("active-filter");
-    }
-    if (sortSelect) {
-      sortSelect.value = "relevance";
-      sortSelect.classList.remove("active-filter");
-    }
-
+    resetFiltersToDefault();
     currentPage = 1;
     renderBooks();
+  });
+}
+
+/* Apply button simply closes modal (filters already applied on change) */
+
+if (applyFiltersButton) {
+  applyFiltersButton.addEventListener("click", () => {
+    closeFiltersModal();
   });
 }
 
@@ -1018,6 +1115,14 @@ function handleBackNavigation(event) {
       return;
     }
 
+    if (!filtersModal.classList.contains("hidden")) {
+      closeFiltersModal();
+      if (window.history && window.history.pushState) {
+        history.pushState({ screen: isOnHomeScreen() ? "home" : "page" }, "");
+      }
+      return;
+    }
+
     if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
       closeSearchOverlay();
       if (window.history && window.history.pushState) {
@@ -1047,6 +1152,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     if (!bookModal.classList.contains("hidden")) closeBookModal();
     if (!categoryModal.classList.contains("hidden")) closeCategoryModal();
+    if (!filtersModal.classList.contains("hidden")) closeFiltersModal();
     if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
       closeSearchOverlay();
     }
