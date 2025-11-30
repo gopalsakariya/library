@@ -1,1169 +1,513 @@
-/* ============================================
-   1. GOOGLE SHEET CONFIG & BOOK STORAGE
-============================================ */
+/* ============================================================
+   GLOBAL VARIABLES
+============================================================ */
 
-const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
-const SHEET_TAB = "Sheet1";
-const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
+let books = [];
+let filteredBooks = [];
+let currentCategory = "all";
+let currentView = "grid";
+let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
-const books = [];
+let sizeFilter = "any";
+let pagesFilter = "any";
+let sortOption = "relevance";
 
-function getCoverPath(rawCover) {
-  let cover = (rawCover || "").trim();
-  if (!cover) return "img/book.jpg";
-  if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
-  return cover;
-}
+let currentPage = 1;
+const booksPerPage = 100;
 
-/* ============================================
-   2. DOM ELEMENTS
-============================================ */
-
-const booksContainer = document.getElementById("booksContainer");
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearSearchButton = document.getElementById("clearSearchButton");
 
-const sizeFilterSelect = document.getElementById("sizeFilter");
-const pagesFilterSelect = document.getElementById("pagesFilter");
-const sortSelect = document.getElementById("sortSelect");
-const clearFiltersButton = document.getElementById("clearFiltersButton");
-const applyFiltersButton = document.getElementById("applyFiltersButton");
-const filtersButton = document.getElementById("filtersButton");
-const sortInlineButton = document.getElementById("sortInlineButton");
+const categoriesLeft = document.getElementById("categories-left");
+const categoriesRight = document.getElementById("categories-right");
 
-const viewSwitch = document.getElementById("viewSwitch");
-const viewButtons = viewSwitch
-  ? viewSwitch.querySelectorAll(".view-btn")
-  : [];
-
+const booksContainer = document.getElementById("booksContainer");
 const resultsInfo = document.getElementById("resultsInfo");
 
-const paginationControls = document.getElementById("paginationControls");
-const prevPageBtn = document.getElementById("prevPage");
-const nextPageBtn = document.getElementById("nextPage");
-const pageInfo = document.getElementById("pageInfo");
-
-const themeToggle = document.getElementById("themeToggle");
-const categoryRow = document.getElementById("categories");
-
-const bookModal = document.getElementById("bookModal");
-const modalOverlay = bookModal.querySelector(".modal-overlay");
-const modalClose = bookModal.querySelector(".modal-close");
-const modalBody = bookModal.querySelector(".modal-body");
-
-const categoryModal = document.getElementById("categoryModal");
-const categoryModalOverlay = categoryModal.querySelector(".modal-overlay");
-const categoryModalClose = categoryModal.querySelector(".modal-close");
-const categoryList = document.getElementById("categoryList");
-
 const filtersModal = document.getElementById("filtersModal");
-const filtersModalOverlay = filtersModal.querySelector(".modal-overlay");
-const filtersModalClose = filtersModal.querySelector(".modal-close");
+const filtersButton = document.getElementById("filtersButton");
+const applyFiltersButton = document.getElementById("applyFiltersButton");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
 
-const mobileBottomNav = document.getElementById("mobileBottomNav");
-const headerEl = document.querySelector("header");
+const sizeFilterSelect = document.getElementById("sizeFilter");
+const pagesFilterSelect = document.getElementById("pagesFilter");
 
-let searchOverlay = null;
+const sortWrapper = document.getElementById("sortInlineButton");
+const sortMenu = createSortDropdown();
 
-/* ============================================
-   3. LOAD BOOKS FROM GOOGLE SHEET + CACHE
-============================================ */
+document.body.appendChild(sortMenu);
 
-function mapRowToBook(row) {
-  const title = (row.title || "").trim();
-  const author = (row.author || "").trim();
+/* ============================================================
+   INITIAL DATA LOAD
+============================================================ */
 
-  let category = (row.category || "Other").trim();
-  if (category) {
-    category =
-      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-  } else {
-    category = "Other";
+fetchBooks();
+
+async function fetchBooks() {
+  const url =
+    "https://docs.google.com/spreadsheets/d/1Na_9ZaRzuUUb7HncNwpgh5Yp1GaQ5WzrO2kYgG8mE5E/gviz/tq?tqx=out:json";
+
+  try {
+    const response = await fetch(url);
+    const text = await response.text();
+    const json = JSON.parse(text.substring(47).slice(0, -2));
+
+    books = json.table.rows.map(parseRow);
+    filteredBooks = books;
+
+    populateCategories();
+    applyAllFilters();
+  } catch (err) {
+    console.error("Error loading sheet:", err);
   }
+}
 
-  const description = (row.description || "").trim();
-  const details = (row.details || "").trim();
+/* ============================================================
+   PARSE GOOGLE SHEET ROW
+============================================================ */
 
-  const rawTags = (row.tags || "").trim();
-
-  let tags = [];
-  let format = "";
-  let sizeMB = null;
-  let pages = null;
-
-  if (rawTags) {
-    const parts = rawTags
-      .split(",")
-      .map(p => p.trim())
-      .filter(Boolean);
-
-    tags = parts;
-
-    parts.forEach(p => {
-      const lower = p.toLowerCase();
-
-      if (!format) {
-        if (lower === "pdf") format = "PDF";
-        else if (lower === "epub") format = "EPUB";
-        else if (lower === "mobi") format = "MOBI";
-        else if (lower === "doc" || lower === "docx") format = "DOC";
-      }
-
-      const mbMatch = lower.match(/([\d.]+)\s*mb/);
-      if (mbMatch) {
-        const value = parseFloat(mbMatch[1]);
-        if (!isNaN(value)) sizeMB = value;
-      }
-
-      const pagesMatch = lower.match(/(\d+)\s*pages?/);
-      if (pagesMatch) {
-        const value = parseInt(pagesMatch[1], 10);
-        if (!isNaN(value)) pages = value;
-      }
-    });
-  }
-
-  const pdfUrl = (row.pdfurl || row.pdf || row.url || "").trim();
-  const cover = getCoverPath(row.cover);
+function parseRow(row) {
+  const c = row.c.map((v) => (v ? v.v : ""));
 
   return {
-    title,
-    author,
-    category,
-    description,
-    details,
-    tags,
-    rawTags,
-    format,
-    sizeMB,
-    pages,
-    pdfUrl,
-    cover
+    title: c[0] || "",
+    author: c[1] || "",
+    category: c[2] || "",
+    description: c[3] || "",
+    pdf: c[4] || "",
+    sizeMB: Number(c[5]) || 0,
+    pages: Number(c[6]) || 0,
+    cover: c[7] || "",
+    tags: parseTags(c[8])
   };
 }
 
-let firstDataApplied = false;
-
-function applyBooksAndInit(newBooks) {
-  const hadDataBefore = firstDataApplied;
-  firstDataApplied = true;
-
-  books.length = 0;
-  newBooks.forEach(b => books.push(b));
-
-  renderTopCategories();
-
-  if (hadDataBefore) {
-    renderBooks();
-  } else {
-    changeCategory("all");
-  }
+function parseTags(str) {
+  if (!str) return [];
+  return str.split(",").map((t) => t.trim());
 }
 
-function loadBooksFromSheet() {
-  try {
-    const cacheStr = localStorage.getItem("booksCache");
-    if (cacheStr) {
-      const cached = JSON.parse(cacheStr);
-      if (Array.isArray(cached) && cached.length) {
-        applyBooksAndInit(cached);
-      }
-    } else {
-      booksContainer.innerHTML = "<p>Loading books...</p>";
-    }
-  } catch {
-    booksContainer.innerHTML = "<p>Loading books...</p>";
-  }
+/* ============================================================
+   CATEGORY BUTTONS
+============================================================ */
 
-  fetch(SHEET_URL)
-    .then(res => res.json())
-    .then(rows => {
-      const mapped = rows.map(mapRowToBook);
-      localStorage.setItem("booksCache", JSON.stringify(mapped));
-      applyBooksAndInit(mapped);
-    })
-    .catch(err => {
-      console.error("Error loading sheet:", err);
-      if (!firstDataApplied) {
-        booksContainer.innerHTML = "<p>Failed to load books.</p>";
-      }
+function populateCategories() {
+  const categorySet = new Set(["all", "bookmarked"]);
+
+  books.forEach((b) => {
+    if (b.category) categorySet.add(b.category.trim());
+  });
+
+  categoriesLeft.innerHTML = "";
+
+  categorySet.forEach((cat) => {
+    const btn = document.createElement("button");
+    btn.className = "category-btn";
+    btn.textContent = capitalize(cat);
+    btn.dataset.category = cat;
+
+    btn.addEventListener("click", () => {
+      currentCategory = cat;
+      highlightCategory();
+      applyAllFilters();
     });
+
+    categoriesLeft.appendChild(btn);
+  });
+
+  highlightCategory();
 }
 
-/* ============================================
-   4. STATE
-============================================ */
-
-let currentCategory = "all";
-let currentSearch = "";
-let currentSort = "relevance";
-let currentPage = 1;
-const pageSize = 40;
-
-let currentSizeFilter = "any";
-let currentPagesFilter = "any";
-let currentView = "grid";
-
-let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-
-function isOnHomeScreen() {
-  return currentCategory === "all" && !currentSearch;
+function highlightCategory() {
+  document.querySelectorAll(".category-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.category === currentCategory);
+  });
 }
 
-/* ============================================
-   5. THEME (DARK / LIGHT)
-============================================ */
+/* ============================================================
+   FILTERS POPUP (ONLY SIZE + LENGTH)
+============================================================ */
 
-function applyTheme(theme) {
-  if (theme === "dark") {
-    document.body.classList.add("dark");
-    document.body.classList.remove("light");
-    themeToggle.innerHTML = '<i class="fa-regular fa-sun"></i>';
-  } else {
-    document.body.classList.add("light");
-    document.body.classList.remove("dark");
-    themeToggle.innerHTML = '<i class="fa-regular fa-moon"></i>';
-  }
-}
-
-applyTheme(localStorage.getItem("theme") || "dark");
-
-themeToggle.addEventListener("click", () => {
-  const newTheme = document.body.classList.contains("dark") ? "light" : "dark";
-  localStorage.setItem("theme", newTheme);
-  applyTheme(newTheme);
+filtersButton.addEventListener("click", () => {
+  openModal(filtersModal);
 });
 
-/* ============================================
-   6. HEADER HIDE ON SCROLL
-============================================ */
+applyFiltersButton.addEventListener("click", () => {
+  sizeFilter = sizeFilterSelect.value;
+  pagesFilter = pagesFilterSelect.value;
 
-let lastScrollY = window.scrollY;
-let headerHidden = false;
-
-window.addEventListener("scroll", () => {
-  const current = window.scrollY;
-  if (current > lastScrollY + 10 && current > 80 && !headerHidden) {
-    headerEl.style.transform = "translateY(-100%)";
-    headerHidden = true;
-  } else if (current < lastScrollY - 10 && headerHidden) {
-    headerEl.style.transform = "";
-    headerHidden = false;
-  }
-  lastScrollY = current;
-});
-
-/* ============================================
-   7. HELPERS
-============================================ */
-
-function normalize(str) {
-  return (str || "").toString().toLowerCase();
-}
-
-function levenshtein(a, b) {
-  a = normalize(a);
-  b = normalize(b);
-  const m = a.length;
-  const n = b.length;
-  if (!m) return n;
-  if (!n) return m;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return dp[m][n];
-}
-
-function getMatchScore(text, query) {
-  const t = normalize(text);
-  const q = normalize(query);
-  if (!t || !q) return 0;
-
-  const idx = t.indexOf(q);
-  if (idx === 0) return 10 + (t === q ? 5 : 0);
-  if (idx > 0) return 6;
-
-  const dist = levenshtein(t, q);
-  if (dist === 0) return 8;
-  if (dist === 1) return 6;
-  if (dist === 2) return 4;
-  if (dist <= 4) return 2;
-  return 0;
-}
-
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function highlight(text) {
-  if (!currentSearch) return text;
-  const q = currentSearch.trim();
-  if (!q) return text;
-  return text.replace(
-    new RegExp(escapeRegExp(q), "ig"),
-    m => `<mark>${m}</mark>`
+  filtersButton.classList.toggle(
+    "active",
+    sizeFilter !== "any" || pagesFilter !== "any"
   );
+
+  closeModal(filtersModal);
+  applyAllFilters();
+});
+
+clearFiltersButton.addEventListener("click", () => {
+  sizeFilter = "any";
+  pagesFilter = "any";
+  sizeFilterSelect.value = "any";
+  pagesFilterSelect.value = "any";
+
+  filtersButton.classList.remove("active");
+
+  closeModal(filtersModal);
+  applyAllFilters();
+});
+
+/* ============================================================
+   SORT DROPDOWN (UNDER SORT ICON)
+============================================================ */
+
+function createSortDropdown() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "sort-menu";
+  wrapper.id = "sortMenu";
+
+  const options = [
+    ["relevance", "Relevance"],
+    ["title", "Title (A–Z)"],
+    ["author", "Author (A–Z)"],
+    ["category", "Category (A–Z)"],
+    ["sizeAsc", "Size (Small → Large)"],
+    ["sizeDesc", "Size (Large → Small)"],
+    ["pagesAsc", "Pages (Few → Many)"],
+    ["pagesDesc", "Pages (Many → Few)"]
+  ];
+
+  options.forEach(([value, label]) => {
+    const btn = document.createElement("button");
+    btn.className = "sort-option";
+    btn.dataset.value = value;
+    btn.textContent = label;
+
+    btn.addEventListener("click", () => {
+      sortOption = value;
+      highlightSortOption();
+      applyAllFilters();
+      wrapper.classList.remove("open");
+    });
+
+    wrapper.appendChild(btn);
+  });
+
+  return wrapper;
 }
 
-/* ============================================
-   8. BOOKMARKS
-============================================ */
+sortWrapper.addEventListener("click", (e) => {
+  e.stopPropagation();
+  sortMenu.classList.toggle("open");
+});
 
-function toggleBookmark(title) {
-  if (bookmarks.includes(title)) {
-    bookmarks = bookmarks.filter(t => t !== title);
+function highlightSortOption() {
+  document.querySelectorAll(".sort-option").forEach((opt) => {
+    opt.classList.toggle("active", opt.dataset.value === sortOption);
+  });
+
+  sortWrapper.classList.toggle("active", sortOption !== "relevance");
+}
+
+/* close sort menu by clicking outside */
+document.addEventListener("click", () => {
+  sortMenu.classList.remove("open");
+});
+
+/* ============================================================
+   APPLY ALL FILTERS + SORT
+============================================================ */
+
+function applyAllFilters() {
+  const search = searchInput.value.trim().toLowerCase();
+
+  filteredBooks = books.filter((b) => {
+    if (currentCategory === "bookmarked" && !bookmarks.includes(b.pdf)) return false;
+    if (currentCategory !== "all" && currentCategory !== "bookmarked") {
+      if (b.category.toLowerCase() !== currentCategory.toLowerCase()) return false;
+    }
+
+    if (search) {
+      const combined =
+        b.title.toLowerCase() +
+        " " +
+        b.author.toLowerCase() +
+        " " +
+        b.category.toLowerCase() +
+        " " +
+        b.description.toLowerCase() +
+        " " +
+        b.tags.join(" ").toLowerCase();
+
+      if (!combined.includes(search)) return false;
+    }
+
+    if (!checkSizeRule(b.sizeMB)) return false;
+    if (!checkPageRule(b.pages)) return false;
+
+    return true;
+  });
+
+  sortBooks();
+  renderBooks();
+}
+
+function sortBooks() {
+  filteredBooks.sort((a, b) => {
+    switch (sortOption) {
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "author":
+        return a.author.localeCompare(b.author);
+      case "category":
+        return a.category.localeCompare(b.category);
+      case "sizeAsc":
+        return a.sizeMB - b.sizeMB;
+      case "sizeDesc":
+        return b.sizeMB - a.sizeMB;
+      case "pagesAsc":
+        return a.pages - b.pages;
+      case "pagesDesc":
+        return b.pages - a.pages;
+      default:
+        return 0;
+    }
+  });
+
+  highlightSortOption();
+}
+
+/* ============================================================
+   SIZE + LENGTH RULES
+============================================================ */
+
+function checkSizeRule(mb) {
+  switch (sizeFilter) {
+    case "lt1":
+      return mb < 1;
+    case "1to100":
+      return mb >= 1 && mb <= 100;
+    case "100to200":
+      return mb >= 100 && mb <= 200;
+    case "200to500":
+      return mb >= 200 && mb <= 500;
+    case "500to1000":
+      return mb >= 500 && mb <= 1000;
+    case "gt1000":
+      return mb > 1000;
+    default:
+      return true;
+  }
+}
+
+function checkPageRule(p) {
+  switch (pagesFilter) {
+    case "lt100":
+      return p < 100;
+    case "100to200":
+      return p >= 100 && p <= 200;
+    case "200to500":
+      return p >= 200 && p <= 500;
+    case "500to1000":
+      return p >= 500 && p <= 1000;
+    case "1000to2000":
+      return p >= 1000 && p <= 2000;
+    case "gt2000":
+      return p > 2000;
+    default:
+      return true;
+  }
+}
+
+/* ============================================================
+   RENDER BOOKS
+============================================================ */
+
+function renderBooks() {
+  booksContainer.classList.toggle("list-view", currentView === "list");
+
+  booksContainer.innerHTML = filteredBooks
+    .map((b) => bookCardHTML(b))
+    .join("");
+
+  addCardListeners();
+
+  resultsInfo.textContent = filteredBooks.length + " results";
+}
+
+function bookCardHTML(b) {
+  return `
+    <div class="book-card" data-id="${b.pdf}">
+      <button class="bookmark-btn">${bookmarks.includes(b.pdf) ? "★" : "☆"}</button>
+
+      <img class="book-cover" src="${b.cover}" />
+
+      <div class="book-info">
+        <div class="book-title">${b.title}</div>
+        <div class="book-author">by ${b.author}</div>
+        <div class="book-category">Category: ${b.category}</div>
+        <div class="book-desc">${b.description}</div>
+
+        <div class="book-links">
+          <a href="${b.pdf}" target="_blank">
+            <i class="fa-regular fa-file-pdf"></i> Get PDF
+          </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function addCardListeners() {
+  document.querySelectorAll(".bookmark-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const card = btn.closest(".book-card");
+      toggleBookmark(card.dataset.id);
+      btn.textContent = bookmarks.includes(card.dataset.id) ? "★" : "☆";
+    });
+  });
+
+  document.querySelectorAll(".book-card").forEach((card) => {
+    card.addEventListener("click", () => {
+      const id = card.dataset.id;
+      openBookModal(id);
+    });
+  });
+}
+
+/* ============================================================
+   BOOKMARKS
+============================================================ */
+
+function toggleBookmark(id) {
+  if (bookmarks.includes(id)) {
+    bookmarks = bookmarks.filter((x) => x !== id);
   } else {
-    bookmarks.push(title);
+    bookmarks.push(id);
   }
   localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
-  renderBooks();
 }
 
-/* ============================================
-   9. CATEGORIES + FILTER CORE
-============================================ */
+/* ============================================================
+   BOOK MODAL
+============================================================ */
 
-function getAllCategories() {
-  const set = new Set(["all", "bookmarked"]);
-  books.forEach(b => set.add(b.category));
-  return [...set];
-}
+const bookModal = document.getElementById("bookModal");
+const bookModalBody = bookModal.querySelector(".modal-body");
 
-function updateFiltersButtonActive() {
-  if (!filtersButton) return;
-  const isActive =
-    currentSizeFilter !== "any" ||
-    currentPagesFilter !== "any" ||
-    currentSort !== "relevance";
-  filtersButton.classList.toggle("active", isActive);
-}
+function openBookModal(id) {
+  const b = books.find((x) => x.pdf === id);
 
-function updateSortInlineButtonActive() {
-  if (!sortInlineButton) return;
-  const isActive = currentSort !== "relevance";
-  sortInlineButton.classList.toggle("active", isActive);
-}
-
-function resetFiltersToDefault() {
-  currentSizeFilter = "any";
-  currentPagesFilter = "any";
-  currentSort = "relevance";
-
-  if (sizeFilterSelect) {
-    sizeFilterSelect.value = "any";
-    sizeFilterSelect.classList.remove("active-filter");
-  }
-  if (pagesFilterSelect) {
-    pagesFilterSelect.value = "any";
-    pagesFilterSelect.classList.remove("active-filter");
-  }
-  if (sortSelect) {
-    sortSelect.value = "relevance";
-    sortSelect.classList.remove("active-filter");
-  }
-
-  updateFiltersButtonActive();
-  updateSortInlineButtonActive();
-}
-
-function renderTopCategories() {
-  if (!categoryRow) return;
-
-  const cats = getAllCategories().filter(
-    c => c !== "all" && c !== "bookmarked"
-  );
-
-  // We assume HTML has placeholders for left/right groups and buttons.
-  // Here we only (re)build the category buttons; filters/sort/view stay in HTML.
-
-  const leftContainer = document.getElementById("categories-left");
-  const rightContainer = document.getElementById("categories-right");
-
-  if (leftContainer) {
-    leftContainer.innerHTML =
-      `
-      <button class="category-btn" data-category="all">All</button>
-      <button class="category-btn" data-category="bookmarked">Bookmarked</button>
-    ` +
-      cats
-        .map(
-          c =>
-            `<button class="category-btn" data-category="${c}">${c}</button>`
-        )
-        .join("");
-  } else {
-    // fallback: render everything directly to #categories (without left/right split)
-    categoryRow.innerHTML =
-      `
-      <button class="category-btn" data-category="all">All</button>
-      <button class="category-btn" data-category="bookmarked">Bookmarked</button>
-      ${cats
-        .map(
-          c =>
-            `<button class="category-btn" data-category="${c}">${c}</button>`
-        )
-        .join("")}
-    `;
-  }
-
-  // Rebind category click handler
-  if (!categoryRow.dataset.bound) {
-    categoryRow.addEventListener("click", e => {
-      const btn = e.target.closest(".category-btn");
-      if (!btn) return;
-      const cat = btn.dataset.category || "all";
-      changeCategory(cat);
-    });
-    categoryRow.dataset.bound = "true";
-  }
-
-  // Update active category button
-  const btns = categoryRow.querySelectorAll(".category-btn");
-  btns.forEach(btn => {
-    const bc = btn.dataset.category || "all";
-    btn.classList.toggle("active", bc === currentCategory);
-  });
-
-  updateFiltersButtonActive();
-  updateSortInlineButtonActive();
-}
-
-function setActiveNav(navName) {
-  if (!mobileBottomNav) return;
-  const buttons = mobileBottomNav.querySelectorAll("button[data-nav]");
-  buttons.forEach(btn => {
-    const n = btn.dataset.nav;
-    btn.classList.toggle("nav-active", n === navName);
-  });
-}
-
-function changeCategory(cat) {
-  currentCategory = cat || "all";
-
-  if (categoryRow) {
-    const btns = categoryRow.querySelectorAll(".category-btn");
-    btns.forEach(btn => {
-      const bc = btn.dataset.category || "all";
-      btn.classList.toggle("active", bc === currentCategory);
-    });
-  }
-
-  if (isOnHomeScreen()) {
-    setActiveNav("home");
-  } else if (currentCategory === "bookmarked") {
-    setActiveNav("bookmarks");
-  } else {
-    setActiveNav(null);
-  }
-
-  currentSearch = "";
-  searchInput.value = "";
-  currentPage = 1;
-
-  resetFiltersToDefault();
-  renderBooks();
-}
-
-function getFilteredBooks() {
-  const q = normalize(currentSearch);
-
-  let items = books.map(book => {
-    if (currentCategory === "bookmarked" && !bookmarks.includes(book.title)) {
-      return { book, score: -1 };
-    }
-
-    if (currentCategory !== "all" && currentCategory !== "bookmarked") {
-      if (normalize(book.category) !== normalize(currentCategory)) {
-        return { book, score: -1 };
-      }
-    }
-
-    // size filter: lt1, 1..100, 100..200, 200..500, 500..1000, gt1000
-    if (currentSizeFilter !== "any") {
-      const size = typeof book.sizeMB === "number" ? book.sizeMB : null;
-      if (size == null) return { book, score: -1 };
-
-      if (currentSizeFilter === "lt1" && !(size < 1)) {
-        return { book, score: -1 };
-      }
-      if (currentSizeFilter === "1to100" && !(size >= 1 && size <= 100)) {
-        return { book, score: -1 };
-      }
-      if (currentSizeFilter === "100to200" && !(size >= 100 && size <= 200)) {
-        return { book, score: -1 };
-      }
-      if (currentSizeFilter === "200to500" && !(size >= 200 && size <= 500)) {
-        return { book, score: -1 };
-      }
-      if (currentSizeFilter === "500to1000" && !(size >= 500 && size <= 1000)) {
-        return { book, score: -1 };
-      }
-      if (currentSizeFilter === "gt1000" && !(size > 1000)) {
-        return { book, score: -1 };
-      }
-    }
-
-    // pages filter: lt100, 100..200, 200..500, 500..1000, 1000..2000, gt2000
-    if (currentPagesFilter !== "any") {
-      const p = typeof book.pages === "number" ? book.pages : null;
-      if (p == null) return { book, score: -1 };
-
-      if (currentPagesFilter === "lt100" && !(p < 100)) {
-        return { book, score: -1 };
-      }
-      if (currentPagesFilter === "100to200" && !(p >= 100 && p <= 200)) {
-        return { book, score: -1 };
-      }
-      if (currentPagesFilter === "200to500" && !(p >= 200 && p <= 500)) {
-        return { book, score: -1 };
-      }
-      if (currentPagesFilter === "500to1000" && !(p >= 500 && p <= 1000)) {
-        return { book, score: -1 };
-      }
-      if (currentPagesFilter === "1000to2000" && !(p >= 1000 && p <= 2000)) {
-        return { book, score: -1 };
-      }
-      if (currentPagesFilter === "gt2000" && !(p > 2000)) {
-        return { book, score: -1 };
-      }
-    }
-
-    if (!q) return { book, score: 1 };
-
-    const tagsText =
-      book.tags && book.tags.length ? book.tags.join(" ") : "";
-
-    const s =
-      getMatchScore(book.title, q) * 3 +
-      getMatchScore(book.author, q) * 2 +
-      getMatchScore(book.category, q) * 2 +
-      getMatchScore(book.description, q) +
-      getMatchScore(tagsText, q) * 2;
-
-    return { book, score: s };
-  });
-
-  items = items.filter(x => x.score > 0 || (!q && x.score === 1));
-
-  if (currentSort === "title") {
-    items.sort((a, b) => a.book.title.localeCompare(b.book.title));
-  } else if (currentSort === "author") {
-    items.sort((a, b) => a.book.author.localeCompare(b.book.author));
-  } else if (currentSort === "category") {
-    items.sort((a, b) => a.book.category.localeCompare(b.book.category));
-  } else if (currentSort === "sizeAsc") {
-    items.sort((a, b) => {
-      const sa = a.book.sizeMB;
-      const sb = b.book.sizeMB;
-      if (sa == null && sb == null) return 0;
-      if (sa == null) return 1;
-      if (sb == null) return -1;
-      return sa - sb;
-    });
-  } else if (currentSort === "sizeDesc") {
-    items.sort((a, b) => {
-      const sa = a.book.sizeMB;
-      const sb = b.book.sizeMB;
-      if (sa == null && sb == null) return 0;
-      if (sa == null) return 1;
-      if (sb == null) return -1;
-      return sb - sa;
-    });
-  } else if (currentSort === "pagesAsc") {
-    items.sort((a, b) => {
-      const pa = a.book.pages;
-      const pb = b.book.pages;
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return pa - pb;
-    });
-  } else if (currentSort === "pagesDesc") {
-    items.sort((a, b) => {
-      const pa = a.book.pages;
-      const pb = b.book.pages;
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return pb - pa;
-    });
-  } else {
-    items.sort(
-      (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
-    );
-  }
-
-  return items;
-}
-
-/* ============================================
-   10. POPUPS / MODALS
-============================================ */
-
-function isAnyPopupOpen() {
-  const bookOpen = !bookModal.classList.contains("hidden");
-  const catOpen = !categoryModal.classList.contains("hidden");
-  const filtersOpen = !filtersModal.classList.contains("hidden");
-  const searchOpen =
-    searchOverlay && !searchOverlay.classList.contains("hidden");
-  return bookOpen || catOpen || filtersOpen || searchOpen;
-}
-
-function updatePopupOpenClass() {
-  if (isAnyPopupOpen()) {
-    document.body.classList.add("popup-open");
-  } else {
-    document.body.classList.remove("popup-open");
-  }
-}
-
-function openBookModal(book) {
-  const cover = book.cover || "img/book.jpg";
-
-  const tagChips =
-    book.tags && book.tags.length
-      ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
-      : "";
-
-  modalBody.innerHTML = `
+  bookModalBody.innerHTML = `
     <div class="modal-book-header">
-      <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
+      <img class="modal-cover" src="${b.cover}" />
       <div class="modal-book-main">
-        <h3>${book.title}</h3>
+        <h3>${b.title}</h3>
         <p class="modal-author-category">
-          <span class="mac-author">${book.author}</span>
-          <span class="mac-separator">•</span>
-          <span class="mac-category">${book.category}</span>
-          ${
-            tagChips
-              ? `<span class="mac-separator">•</span>
-                 <span class="mac-tags">${tagChips}</span>`
-              : ""
-          }
+          ${b.author} • ${b.category}
         </p>
       </div>
     </div>
 
-    ${
-      book.description
-        ? `<div class="modal-section">
-             <h4>Summary</h4>
-             <p>${book.description}</p>
-           </div>`
-        : ""
-    }
+    <div class="modal-section">
+      <h4>Summary</h4>
+      <p>${b.description}</p>
+    </div>
 
-    ${
-      book.details
-        ? `<div class="modal-section">
-             <h4>Details</h4>
-             <p>${book.details}</p>
-           </div>`
-        : ""
-    }
+    <div class="modal-section">
+      <h4>File info</h4>
+      <p>Format: PDF</p>
+      <p>Length: ${b.pages} pages</p>
+      <p>Size: ${b.sizeMB} MB</p>
+    </div>
 
-    <div class="modal-section modal-actions">
-      <a href="${book.pdfUrl || "#"}"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="modal-btn">
-         <i class="fa-solid fa-file-pdf"></i>
-         <span>Get PDF</span>
+    <div class="modal-actions">
+      <a class="modal-btn" href="${b.pdf}" target="_blank">
+        <i class="fa-regular fa-file-pdf"></i> Get PDF
       </a>
-      <button type="button"
-              class="modal-btn"
-              id="bookmarkToggleBtn">
-        ${
-          bookmarks.includes(book.title)
-            ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
-            : '<i class="fa-regular fa-star"></i><span>Bookmark</span>'
-        }
+
+      <button class="modal-btn" id="modalBookmarkBtn">
+        <i class="fa-solid fa-bookmark"></i>
+        ${bookmarks.includes(b.pdf) ? "Remove" : "Bookmark"}
       </button>
     </div>
   `;
 
   bookModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  setActiveNav(null);
-  updatePopupOpenClass();
+  document.body.classList.add("popup-open");
 
-  const bookmarkToggleBtn = modalBody.querySelector("#bookmarkToggleBtn");
-  if (bookmarkToggleBtn) {
-    bookmarkToggleBtn.addEventListener("click", () => {
-      const wasBookmarked = bookmarks.includes(book.title);
-      toggleBookmark(book.title);
-      const isNowBookmarked = !wasBookmarked;
-      bookmarkToggleBtn.innerHTML = isNowBookmarked
-        ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
-        : '<i class="fa-regular fa-star"></i><span>Bookmark</span>';
-    });
-  }
-
-  // NOTE: click on modal cover NO LONGER opens PDF (removed by request)
+  document.getElementById("modalBookmarkBtn").addEventListener("click", () => {
+    toggleBookmark(b.pdf);
+    applyAllFilters();
+    openBookModal(b.pdf);
+  });
 }
 
-function closeBookModal() {
-  bookModal.classList.add("hidden");
-  document.body.style.overflow = "";
-  updatePopupOpenClass();
-}
-
-modalClose.addEventListener("click", closeBookModal);
-modalOverlay.addEventListener("click", closeBookModal);
-
-/* CATEGORY MODAL */
-
-function openCategoryModal() {
-  const cats = getAllCategories();
-  categoryList.innerHTML = cats
-    .map(cat => {
-      const isActive = cat === currentCategory;
-      return `<button class="category-pill" data-cat="${cat}">
-        ${isActive ? "★ " : ""}${cat}
-      </button>`;
-    })
-    .join("");
-
-  categoryModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  setActiveNav("categories");
-  updatePopupOpenClass();
-}
-
-function closeCategoryModal() {
-  categoryModal.classList.add("hidden");
-  document.body.style.overflow = "";
-  updatePopupOpenClass();
-}
-
-categoryModalClose.addEventListener("click", closeCategoryModal);
-categoryModalOverlay.addEventListener("click", closeCategoryModal);
-
-categoryList.addEventListener("click", e => {
-  const btn = e.target.closest(".category-pill");
-  if (!btn) return;
-  const cat = btn.dataset.cat || "all";
-  changeCategory(cat);
-  closeCategoryModal();
+bookModal.querySelector(".modal-close").addEventListener("click", () => {
+  closeModal(bookModal);
 });
 
-/* FILTERS MODAL */
+/* ============================================================
+   MODAL HELPERS
+============================================================ */
 
-function openFiltersModal() {
-  filtersModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  updatePopupOpenClass();
+function openModal(modal) {
+  modal.classList.remove("hidden");
+  document.body.classList.add("popup-open");
 }
 
-function closeFiltersModal() {
-  filtersModal.classList.add("hidden");
-  document.body.style.overflow = "";
-  updatePopupOpenClass();
+function closeModal(modal) {
+  modal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
 }
 
-filtersModalClose.addEventListener("click", closeFiltersModal);
-filtersModalOverlay.addEventListener("click", closeFiltersModal);
-
-if (filtersButton) {
-  filtersButton.addEventListener("click", openFiltersModal);
-}
-
-// inline sort button (icon button in row)
-if (sortInlineButton) {
-  sortInlineButton.addEventListener("click", () => {
-    // Open filters modal as a "sort shortcut"
-    openFiltersModal();
+/* click overlay to close */
+document.querySelectorAll(".modal-overlay").forEach((ov) => {
+  ov.addEventListener("click", () => {
+    ov.parentElement.classList.add("hidden");
+    document.body.classList.remove("popup-open");
   });
-}
-
-/* SEARCH OVERLAY (mobile) */
-
-function ensureSearchOverlay() {
-  if (searchOverlay) return;
-
-  searchOverlay = document.createElement("div");
-  searchOverlay.id = "searchOverlay";
-  searchOverlay.className = "modal search-overlay hidden";
-  searchOverlay.innerHTML = `
-    <div class="modal-overlay"></div>
-    <div class="modal-dialog">
-      <button class="modal-close" type="button" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-      <div class="modal-body">
-        <h3>Search library</h3>
-        <div id="overlaySearchBar" class="overlay-search-bar">
-          <input type="text" id="overlaySearchInput" placeholder="Search books..." />
-          <button id="overlaySearchButton" title="Search">
-            <i class="fa-solid fa-magnifying-glass"></i>
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(searchOverlay);
-
-  const overlayClose = searchOverlay.querySelector(".modal-close");
-  const overlayOverlay = searchOverlay.querySelector(".modal-overlay");
-  const overlayInput = searchOverlay.querySelector("#overlaySearchInput");
-  const overlayButton = searchOverlay.querySelector("#overlaySearchButton");
-
-  function doSearch() {
-    currentSearch = overlayInput.value.trim();
-    searchInput.value = currentSearch;
-    currentPage = 1;
-    renderBooks();
-    closeSearchOverlay();
-  }
-
-  overlayClose.addEventListener("click", closeSearchOverlay);
-  overlayOverlay.addEventListener("click", closeSearchOverlay);
-  overlayButton.addEventListener("click", doSearch);
-  overlayInput.addEventListener("keyup", e => {
-    if (e.key === "Enter") doSearch();
-  });
-}
-
-function openSearchOverlay() {
-  ensureSearchOverlay();
-  searchOverlay.classList.remove("hidden");
-  const overlayInput = searchOverlay.querySelector("#overlaySearchInput");
-  if (overlayInput) {
-    overlayInput.value = currentSearch || "";
-    overlayInput.focus();
-    overlayInput.select();
-  }
-  updatePopupOpenClass();
-}
-
-function closeSearchOverlay() {
-  if (!searchOverlay) return;
-  searchOverlay.classList.add("hidden");
-  updatePopupOpenClass();
-}
-
-/* ============================================
-   11. RENDER BOOKS + PAGINATION
-============================================ */
-
-function renderBooks() {
-  const allItems = getFilteredBooks();
-  const total = allItems.length;
-
-  if (!currentSearch) {
-    resultsInfo.textContent = "";
-  } else if (!total) {
-    resultsInfo.textContent = "0 results found.";
-  } else {
-    resultsInfo.textContent = `${total} result${total > 1 ? "s" : ""} found.`;
-  }
-
-  if (!total) {
-    booksContainer.innerHTML = "<p>No books found.</p>";
-    paginationControls.classList.add("hidden");
-    return;
-  }
-
-  const totalPages = Math.ceil(total / pageSize);
-  currentPage = Math.min(currentPage, totalPages);
-  const start = (currentPage - 1) * pageSize;
-  const items = allItems.slice(start, start + pageSize);
-
-  if (total > pageSize) {
-    paginationControls.classList.remove("hidden");
-    pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
-    prevPageBtn.disabled = currentPage === 1;
-    nextPageBtn.disabled = currentPage === totalPages;
-  } else {
-    paginationControls.classList.add("hidden");
-  }
-
-  booksContainer.innerHTML = "";
-  booksContainer.classList.toggle("list-view", currentView === "list");
-
-  items.forEach(({ book }) => {
-    const card = document.createElement("div");
-    card.className = "book-card";
-
-    const starred = bookmarks.includes(book.title);
-    const cover = book.cover || "img/book.jpg";
-
-    card.innerHTML = `
-      <button class="bookmark-btn" type="button"
-              title="${starred ? "Remove bookmark" : "Bookmark"}">
-        ${
-          starred
-            ? '<i class="fa-solid fa-star"></i>'
-            : '<i class="fa-regular fa-star"></i>'
-        }
-      </button>
-
-      <img class="book-cover"
-           src="${cover}"
-           alt=""
-           onerror="this.src='img/book.jpg';" />
-
-      <div class="book-info">
-        <div class="book-title">${highlight(book.title)}</div>
-        <div class="book-author">by ${highlight(book.author)}</div>
-        <div class="book-category">Category: ${highlight(book.category)}</div>
-        <div class="book-desc">${highlight(book.description)}</div>
-
-        <div class="book-links">
-          <a href="${book.pdfUrl || "#"}"
-             target="_blank"
-             rel="noopener noreferrer">
-            <i class="fa-solid fa-book-open"></i>
-            <span>Get PDF</span>
-          </a>
-        </div>
-      </div>
-    `;
-
-    const bmBtn = card.querySelector(".bookmark-btn");
-    bmBtn.addEventListener("click", e => {
-      e.stopPropagation();
-      toggleBookmark(book.title);
-    });
-
-    // NOTE: clicking card image no longer opens PDF (feature removed)
-
-    card.addEventListener("click", () => {
-      openBookModal(book);
-    });
-
-    booksContainer.appendChild(card);
-  });
-}
-
-/* ============================================
-   12. SEARCH / FILTER / SORT / VIEW EVENTS
-============================================ */
-
-searchButton.addEventListener("click", () => {
-  currentSearch = searchInput.value.trim();
-  currentPage = 1;
-  renderBooks();
 });
 
-searchInput.addEventListener("keyup", e => {
-  if (e.key === "Enter") searchButton.click();
-});
+/* ============================================================
+   VIEW SWITCHER
+============================================================ */
 
-clearSearchButton.addEventListener("click", () => {
-  currentSearch = "";
-  searchInput.value = "";
-  currentPage = 1;
-  renderBooks();
-});
-
-if (sizeFilterSelect) {
-  sizeFilterSelect.addEventListener("change", () => {
-    currentSizeFilter = sizeFilterSelect.value || "any";
-    sizeFilterSelect.classList.toggle(
-      "active-filter",
-      currentSizeFilter !== "any"
-    );
-    currentPage = 1;
-    updateFiltersButtonActive();
-    renderBooks();
-  });
-}
-
-if (pagesFilterSelect) {
-  pagesFilterSelect.addEventListener("change", () => {
-    currentPagesFilter = pagesFilterSelect.value || "any";
-    pagesFilterSelect.classList.toggle(
-      "active-filter",
-      currentPagesFilter !== "any"
-    );
-    currentPage = 1;
-    updateFiltersButtonActive();
-    renderBooks();
-  });
-}
-
-if (sortSelect) {
-  sortSelect.addEventListener("change", () => {
-    currentSort = sortSelect.value || "relevance";
-    sortSelect.classList.toggle("active-filter", currentSort !== "relevance");
-    currentPage = 1;
-    updateFiltersButtonActive();
-    updateSortInlineButtonActive();
-    renderBooks();
-  });
-}
-
-/* Clear all filters (size, length, sort) */
-
-if (clearFiltersButton) {
-  clearFiltersButton.addEventListener("click", () => {
-    resetFiltersToDefault();
-    currentPage = 1;
-    renderBooks();
-  });
-}
-
-/* Apply button simply closes modal (filters already applied on change) */
-
-if (applyFiltersButton) {
-  applyFiltersButton.addEventListener("click", () => {
-    closeFiltersModal();
-  });
-}
-
-/* View switch: grid / list */
-
-viewButtons.forEach(btn => {
+document.querySelectorAll(".view-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const view = btn.dataset.view || "grid";
-    currentView = view;
-    viewButtons.forEach(b => b.classList.remove("active"));
+    document.querySelectorAll(".view-btn").forEach((x) => x.classList.remove("active"));
     btn.classList.add("active");
+
+    currentView = btn.dataset.view;
     renderBooks();
   });
 });
 
-/* ============================================
-   13. PAGINATION CONTROLS
-============================================ */
+/* ============================================================
+   SEARCH
+============================================================ */
 
-prevPageBtn.addEventListener("click", () => {
-  if (currentPage > 1) {
-    currentPage--;
-    renderBooks();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
+searchButton.addEventListener("click", applyAllFilters);
+clearSearchButton.addEventListener("click", () => {
+  searchInput.value = "";
+  applyAllFilters();
 });
+searchInput.addEventListener("input", applyAllFilters);
 
-nextPageBtn.addEventListener("click", () => {
-  currentPage++;
-  renderBooks();
-  window.scrollTo({ top: 0, behavior: "smooth" });
-});
+/* ============================================================
+   UTILS
+============================================================ */
 
-/* ============================================
-   14. MOBILE BOTTOM NAV
-============================================ */
-
-mobileBottomNav.addEventListener("click", e => {
-  const btn = e.target.closest("button[data-nav]");
-  if (!btn) return;
-  const nav = btn.dataset.nav;
-
-  if (nav === "home") {
-    changeCategory("all");
-    setActiveNav("home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } else if (nav === "bookmarks") {
-    currentCategory = "bookmarked";
-    changeCategory("bookmarked");
-    setActiveNav("bookmarks");
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  } else if (nav === "categories") {
-    setActiveNav("categories");
-    openCategoryModal();
-  } else if (nav === "search") {
-    openSearchOverlay();
-  }
-});
-
-/* ============================================
-   15. BACK BUTTON HANDLING (IMPROVED)
-============================================ */
-
-/**
- * Back button logic (Android physical / browser back):
- * 1. If any popup is open (book, filters, categories, search) -> close popup.
- * 2. Else if currentCategory is NOT "all" -> go to home ("all").
- * 3. Else allow normal browser back (may leave the site).
- */
-function handleBackButton(event) {
-  // 1. Close any open popup first
-  if (!bookModal.classList.contains("hidden")) {
-    closeBookModal();
-    history.pushState({ page: "library" }, "");
-    return;
-  }
-
-  if (!filtersModal.classList.contains("hidden")) {
-    closeFiltersModal();
-    history.pushState({ page: "library" }, "");
-    return;
-  }
-
-  if (!categoryModal.classList.contains("hidden")) {
-    closeCategoryModal();
-    history.pushState({ page: "library" }, "");
-    return;
-  }
-
-  if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
-    closeSearchOverlay();
-    history.pushState({ page: "library" }, "");
-    return;
-  }
-
-  // 2. If currently not on "all" category (e.g., bookmarked or other), go home
-  if (currentCategory !== "all") {
-    changeCategory("all");
-    history.pushState({ page: "library" }, "");
-    return;
-  }
-
-  // 3. Already at home, no popup -> do not re-push state.
-  //    Browser will go back to previous page as normal.
+function capitalize(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Initialize custom back-button handling
-if (window.history && window.history.pushState) {
-  // Add a dummy state so back button comes to us first.
-  history.pushState({ page: "library" }, "");
-  window.addEventListener("popstate", handleBackButton);
-}
+/* ============================================================
+   BACK BUTTON (IMPROVED)
+============================================================ */
 
-// ESC key to close popups
-document.addEventListener("keydown", e => {
-  if (e.key === "Escape") {
-    let closed = false;
-    if (!bookModal.classList.contains("hidden")) {
-      closeBookModal();
-      closed = true;
-    }
-    if (!categoryModal.classList.contains("hidden")) {
-      closeCategoryModal();
-      closed = true;
-    }
-    if (!filtersModal.classList.contains("hidden")) {
-      closeFiltersModal();
-      closed = true;
-    }
-    if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
-      closeSearchOverlay();
-      closed = true;
-    }
-    if (closed && window.history && window.history.pushState) {
-      history.pushState({ page: "library" }, "");
-    }
-  }
+window.addEventListener("popstate", () => {
+  if (!bookModal.classList.contains("hidden")) closeModal(bookModal);
 });
-
-/* ============================================
-   16. INITIALIZE
-============================================ */
-
-loadBooksFromSheet();
-renderTopCategories();
-updateFiltersButtonActive();
-updateSortInlineButtonActive();
