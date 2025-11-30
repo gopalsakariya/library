@@ -29,7 +29,7 @@
 
 <main>
 
-  <!-- SEARCH + VIEW SWITCH -->
+  <!-- SEARCH BAR -->
   <section id="search">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
@@ -41,7 +41,35 @@
       </button>
     </div>
 
-    <div id="filterRow">
+    <!-- Legacy row kept only for spacing if needed (no controls here) -->
+    <div id="filterRow"></div>
+
+    <div id="resultsInfo"></div>
+  </section>
+
+  <!-- UNIFIED CONTROLS ROW: All / Bookmarked / Categories / Filters / Sort / View -->
+  <section id="categories">
+    <!-- Left side: All, Bookmarked, dynamic categories (filled by JS) -->
+    <div id="categories-left">
+      <!-- JS will populate these buttons -->
+      <!-- Example (JS output):
+        <button class="category-btn" data-category="all">All</button>
+        <button class="category-btn" data-category="bookmarked">Bookmarked</button>
+        <button class="category-btn" data-category="Fiction">Fiction</button>
+      -->
+    </div>
+
+    <!-- Right side: Filters, Sort icon, View switch -->
+    <div id="categories-right">
+      <button id="filtersButton" class="filters-btn" type="button">
+        <i class="fa-solid fa-sliders"></i>
+        Filters
+      </button>
+
+      <button id="sortInlineButton" class="sort-inline-btn" type="button" title="Sort">
+        <i class="fa-solid fa-arrow-down-wide-short"></i>
+      </button>
+
       <div id="viewSwitch">
         <button class="view-btn active" data-view="grid" title="Grid view">
           <i class="fa-solid fa-border-all"></i>
@@ -51,22 +79,6 @@
         </button>
       </div>
     </div>
-
-    <div id="resultsInfo"></div>
-  </section>
-
-  <!-- CATEGORIES + FILTERS BUTTON -->
-  <section id="categories">
-    <button class="category-btn active" data-category="all">All</button>
-    <button class="category-btn" data-category="bookmarked">Bookmarked</button>
-    <button class="category-btn" data-category="Mahabharat">Mahabharat</button>
-    <button class="category-btn" data-category="Fiction">Fiction</button>
-    <button class="category-btn" data-category="History">History</button>
-    <button class="category-btn" data-category="Geeta">Geeta</button>
-
-    <button id="filtersButton" class="category-btn filters-btn" type="button">
-      <i class="fa-solid fa-sliders"></i> Filters
-    </button>
   </section>
 
   <!-- BOOKS GRID/LIST -->
@@ -96,7 +108,7 @@
       </div>
     </div>
 
-    <!-- CATEGORY SELECT MODAL -->
+    <!-- CATEGORY SELECT MODAL (used by mobile nav Categories button) -->
     <div id="categoryModal" class="modal hidden">
       <div class="modal-overlay"></div>
       <div class="modal-dialog category-dialog">
@@ -110,7 +122,7 @@
       </div>
     </div>
 
-    <!-- FILTERS MODAL -->
+    <!-- FILTERS MODAL (size, pages, sort) -->
     <div id="filtersModal" class="modal hidden">
       <div class="modal-overlay"></div>
       <div class="modal-dialog filters-dialog">
@@ -180,7 +192,7 @@
   <p>© 2025 Library of TheGopal.com</p>
 </footer>
 
-<!-- Mobile bottom nav (Android-style) -->
+<!-- Mobile bottom nav (shown only on small screens via CSS) -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
   <button data-nav="home" title="Home">
     <i class="fa-solid fa-house nav-icon"></i>
