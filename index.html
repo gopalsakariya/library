@@ -56,7 +56,6 @@
         <option value="long">&gt; 300 pages</option>
       </select>
 
-      <!-- Sort select -->
       <select id="sortSelect">
         <option value="relevance">Sort: Relevance</option>
         <option value="title">Title (A–Z)</option>
@@ -68,12 +67,6 @@
         <option value="pagesDesc">Pages (Many → Few)</option>
       </select>
 
-      <!-- Clear filters -->
-      <button id="clearFiltersBtn" type="button" class="filter-clear-btn">
-        Clear filters
-      </button>
-
-      <!-- View switcher -->
       <div id="viewSwitch">
         <button class="view-btn active" data-view="grid" title="Grid view">
           <i class="fa-solid fa-border-all"></i>
@@ -82,6 +75,10 @@
           <i class="fa-solid fa-list"></i>
         </button>
       </div>
+
+      <button id="clearFiltersButton" class="pill-button" type="button" title="Reset size, length & sort">
+        Clear filters
+      </button>
     </div>
 
     <div id="resultsInfo"></div>
