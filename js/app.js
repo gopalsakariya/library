@@ -15,7 +15,7 @@ function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
   if (!cover) return "img/book.jpg";
   if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
-  return cover; // treat as relative/local path (e.g. img/book1.png)
+  return cover;
 }
 
 /* ============================================
@@ -61,11 +61,10 @@ let searchOverlay = null; // created lazily
 ============================================ */
 
 function mapRowToBook(row) {
-  // ---- Basic fields ----
   const title = (row.title || "").trim();
   const author = (row.author || "").trim();
 
-  // Normalize category: trim + first letter uppercase, rest lowercase
+  // Normalize category: first letter uppercase, rest lowercase
   let category = (row.category || "Other").trim();
   if (category) {
     category =
@@ -77,14 +76,13 @@ function mapRowToBook(row) {
   const description = (row.description || "").trim();
   const details = (row.details || "").trim();
 
-  // ---- Parse tags string ----
-  // Expected format example: "PDF, 10 MB, 150 Pages"
+  // Parse tags string, e.g. "PDF, 10 MB, 150 Pages"
   const rawTags = (row.tags || "").trim();
 
   let tags = [];
-  let format = "";     // e.g. "PDF"
-  let sizeMB = null;   // number, e.g. 10
-  let pages = null;    // number, e.g. 150
+  let format = "";
+  let sizeMB = null;
+  let pages = null;
 
   if (rawTags) {
     const parts = rawTags
@@ -97,23 +95,22 @@ function mapRowToBook(row) {
     parts.forEach(p => {
       const lower = p.toLowerCase();
 
-      // Try to detect format (PDF, EPUB, MOBI, etc.)
+      // Detect format
       if (!format) {
         if (lower === "pdf") format = "PDF";
         else if (lower === "epub") format = "EPUB";
         else if (lower === "mobi") format = "MOBI";
         else if (lower === "doc" || lower === "docx") format = "DOC";
-        // add more if you use other formats
       }
 
-      // Detect "10 MB", "3.5 mb", etc.
+      // Detect "10 MB"
       const mbMatch = lower.match(/([\d.]+)\s*mb/);
       if (mbMatch) {
         const value = parseFloat(mbMatch[1]);
         if (!isNaN(value)) sizeMB = value;
       }
 
-      // Detect "150 Pages", "200 page", etc.
+      // Detect "150 Pages"
       const pagesMatch = lower.match(/(\d+)\s*pages?/);
       if (pagesMatch) {
         const value = parseInt(pagesMatch[1], 10);
@@ -122,13 +119,11 @@ function mapRowToBook(row) {
     });
   }
 
-  // ---- PDF URL ----
+  // direct URL for PDF (Cloudflare R2, etc.)
   const pdfUrl = (row.pdfurl || row.pdf || row.url || "").trim();
 
-  // ---- Cover image ----
   const cover = getCoverPath(row.cover);
 
-  // ---- Return unified book object ----
   return {
     title,
     author,
@@ -144,6 +139,7 @@ function mapRowToBook(row) {
     cover
   };
 }
+
 
 let historyInitialized = false;
 let exitConfirmShown = false;
@@ -214,10 +210,11 @@ function loadBooksFromSheet() {
 let currentCategory = "all";
 let currentSearch = "";
 let currentSort = "relevance";
-let currentSizeFilter = "any";
-let currentPagesFilter = "any";
 let currentPage = 1;
 const pageSize = 40;
+
+let currentSizeFilter = "any";
+let currentPagesFilter = "any";
 
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
@@ -416,12 +413,12 @@ function changeCategory(cat) {
     setActiveNav(null);
   }
 
-  // Reset search and filters when changing category
   currentSearch = "";
   searchInput.value = "";
   currentSort = "relevance";
   currentPage = 1;
 
+  // reset advanced filters
   currentSizeFilter = "any";
   currentPagesFilter = "any";
   if (sizeFilterSelect) sizeFilterSelect.value = "any";
@@ -435,23 +432,28 @@ function changeCategory(cat) {
   renderBooks();
 }
 
+
+/* ============================================
+   9.1 FILTER + SORT CORE
+============================================ */
+
 function getFilteredBooks() {
   const q = normalize(currentSearch);
 
   let items = books.map(book => {
-    // 1) Bookmark filter
+    // Bookmark filter
     if (currentCategory === "bookmarked" && !bookmarks.includes(book.title)) {
       return { book, score: -1 };
     }
 
-    // 2) Category filter
+    // Category filter
     if (currentCategory !== "all" && currentCategory !== "bookmarked") {
       if (normalize(book.category) !== normalize(currentCategory)) {
         return { book, score: -1 };
       }
     }
 
-    // 3) Size filter (based on sizeMB parsed from tags)
+    // Size filter (using sizeMB from tags)
     if (currentSizeFilter !== "any") {
       const size = typeof book.sizeMB === "number" ? book.sizeMB : null;
       if (size == null) {
@@ -468,7 +470,7 @@ function getFilteredBooks() {
       }
     }
 
-    // 4) Pages filter (based on pages parsed from tags)
+    // Pages filter (using pages from tags)
     if (currentPagesFilter !== "any") {
       const p = typeof book.pages === "number" ? book.pages : null;
       if (p == null) {
@@ -485,11 +487,8 @@ function getFilteredBooks() {
       }
     }
 
-    // 5) Search scoring
-    if (!q) {
-      // No search string: neutral positive score
-      return { book, score: 1 };
-    }
+    // No search query -> neutral positive score
+    if (!q) return { book, score: 1 };
 
     const tagsText =
       book.tags && book.tags.length ? book.tags.join(" ") : "";
@@ -504,7 +503,7 @@ function getFilteredBooks() {
     return { book, score: s };
   });
 
-  // Remove filtered-out items
+  // Remove filtered out items
   items = items.filter(x => x.score > 0 || (!q && x.score === 1));
 
   // Sorting
@@ -551,7 +550,7 @@ function getFilteredBooks() {
       return pb - pa;
     });
   } else {
-    // default: relevance
+    // relevance
     items.sort(
       (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
     );
@@ -582,7 +581,7 @@ function updatePopupOpenClass() {
 
 function openBookModal(book) {
   if (window.history && window.history.pushState) {
-    history.pushState({ screen: "book" }, "");
+    history.pushState({ screen: "bookModal" }, "");
   }
 
   const cover = book.cover || "img/book.jpg";
@@ -592,6 +591,41 @@ function openBookModal(book) {
       ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
       : "";
 
+  // Build file info text
+  let fileInfoHtml = "";
+  const fileInfoParts = [];
+
+  if (book.format) {
+    fileInfoParts.push(`<strong>Format:</strong> ${book.format}`);
+  }
+
+  if (typeof book.sizeMB === "number") {
+    let sizeLabel = "";
+    if (book.sizeMB < 5) sizeLabel = "Small file";
+    else if (book.sizeMB <= 20) sizeLabel = "Medium file";
+    else sizeLabel = "Large file";
+    fileInfoParts.push(`<strong>Size:</strong> ${book.sizeMB} MB (${sizeLabel})`);
+  }
+
+  if (typeof book.pages === "number") {
+    let lengthLabel = "";
+    if (book.pages < 100) lengthLabel = "Short";
+    else if (book.pages <= 300) lengthLabel = "Medium";
+    else lengthLabel = "Long";
+    fileInfoParts.push(`<strong>Length:</strong> ${book.pages} pages (${lengthLabel})`);
+  }
+
+  if (fileInfoParts.length) {
+    fileInfoHtml = `
+      <div class="modal-section">
+        <h4>File info</h4>
+        <p>${fileInfoParts.join("<br/>")}</p>
+      </div>
+    `;
+  }
+
+  const isBookmarked = bookmarks.includes(book.title);
+
   modalBody.innerHTML = `
     <div class="modal-book-header">
       <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
@@ -599,25 +633,22 @@ function openBookModal(book) {
         <h3>${book.title}</h3>
         <p class="modal-author-category">
           <span class="mac-author">${book.author}</span>
-          <span>&bull;</span>
+          <span class="mac-separator">•</span>
           <span class="mac-category">${book.category}</span>
+          ${
+            tagChips
+              ? `<span class="mac-separator">•</span>
+                 <span class="mac-tags">${tagChips}</span>`
+              : ""
+          }
         </p>
-        ${
-          tagChips
-            ? `<div class="modal-tags">${tagChips}</div>`
-            : ""
-        }
       </div>
     </div>
 
-    ${
-      book.description
-        ? `<div class="modal-section">
-             <h4>Summary</h4>
-             <p>${book.description}</p>
-           </div>`
-        : ""
-    }
+    <div class="modal-section">
+      <h4>Summary</h4>
+      <p>${book.description}</p>
+    </div>
 
     ${
       book.details
@@ -628,65 +659,45 @@ function openBookModal(book) {
         : ""
     }
 
-    ${
-      (book.sizeMB || book.pages || book.format)
-        ? `<div class="modal-section">
-             <h4>File Info</h4>
-             <p>
-               ${
-                 book.format
-                   ? `<strong>Format:</strong> ${book.format}<br/>`
-                   : ""
-               }
-               ${
-                 typeof book.sizeMB === "number"
-                   ? `<strong>Size:</strong> ${book.sizeMB} MB<br/>`
-                   : ""
-               }
-               ${
-                 typeof book.pages === "number"
-                   ? `<strong>Pages:</strong> ${book.pages}`
-                   : ""
-               }
-             </p>
-           </div>`
-        : ""
-    }
+    ${fileInfoHtml}
 
-    <div class="modal-actions">
-      <button class="modal-btn primary" type="button" id="openPdfBtn">
-        <i class="fa-solid fa-book-open"></i> Open PDF
-      </button>
-      <button class="modal-btn secondary" type="button" id="bookmarkToggleBtn">
+    <div class="modal-section modal-actions">
+      <a href="${book.pdfUrl || "#"}"
+         target="_blank"
+         rel="noopener noreferrer"
+         class="modal-btn">
+         <i class="fa-solid fa-file-pdf"></i>
+         <span>Get PDF</span>
+      </a>
+      <button type="button"
+              class="modal-btn"
+              id="bookmarkToggleBtn">
         ${
-          bookmarks.includes(book.title)
-            ? '<i class="fa-solid fa-star"></i> Remove bookmark'
-            : '<i class="fa-regular fa-star"></i> Bookmark'
+          isBookmarked
+            ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
+            : '<i class="fa-regular fa-star"></i><span>Bookmark</span>'
         }
       </button>
     </div>
   `;
 
-  const openPdfBtn = modalBody.querySelector("#openPdfBtn");
-  if (openPdfBtn) {
-    openPdfBtn.addEventListener("click", () => {
-      if (book.pdfUrl) {
-        window.open(book.pdfUrl, "_blank", "noopener");
-      }
-    });
-  }
+  bookModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+  setActiveNav(null);
+  updatePopupOpenClass();
 
+  // Attach bookmark handler (do not close modal)
   const bookmarkToggleBtn = modalBody.querySelector("#bookmarkToggleBtn");
   if (bookmarkToggleBtn) {
     bookmarkToggleBtn.addEventListener("click", () => {
+      const wasBookmarked = bookmarks.includes(book.title);
       toggleBookmark(book.title);
-      closeBookModal();
+      const isNowBookmarked = !wasBookmarked;
+      bookmarkToggleBtn.innerHTML = isNowBookmarked
+        ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
+        : '<i class="fa-regular fa-star"></i><span>Bookmark</span>';
     });
   }
-
-  bookModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-  updatePopupOpenClass();
 }
 
 function closeBookModal() {
@@ -697,6 +708,8 @@ function closeBookModal() {
 
 modalClose.addEventListener("click", closeBookModal);
 modalOverlay.addEventListener("click", closeBookModal);
+
+/* CATEGORY MODAL */
 
 function openCategoryModal() {
   if (window.history && window.history.pushState) {
@@ -735,6 +748,8 @@ categoryList.addEventListener("click", e => {
   changeCategory(cat);
   closeCategoryModal();
 });
+
+/* SEARCH OVERLAY */
 
 function ensureSearchOverlay() {
   if (searchOverlay) return;
@@ -895,7 +910,7 @@ function renderBooks() {
 }
 
 /* ============================================
-   12. SEARCH, CLEAR, SORT
+   12. SEARCH, CLEAR, SORT, FILTER EVENTS
 ============================================ */
 
 searchButton.addEventListener("click", () => {
@@ -914,11 +929,6 @@ clearSearchButton.addEventListener("click", () => {
   searchInput.value = "";
   currentPage = 1;
   sortControls.classList.add("hidden");
-  // Reset advanced filters as well
-  currentSizeFilter = "any";
-  currentPagesFilter = "any";
-  if (sizeFilterSelect) sizeFilterSelect.value = "any";
-  if (pagesFilterSelect) pagesFilterSelect.value = "any";
   renderBooks();
 });
 
