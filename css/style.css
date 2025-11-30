@@ -209,6 +209,48 @@ body:not(.dark) #clearSearchButton {
   opacity: 0.9;
 }
 
+/* ADVANCED FILTERS (SIZE & PAGES) */
+#advancedFilters {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.filter-group label {
+  color: #9ca3af;
+}
+
+.filter-group input {
+  width: 4.5rem;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.5rem;
+  border: 1px solid #4b5563;
+  background: #020617;
+  color: #e5e7eb;
+  font-size: 0.8rem;
+}
+
+/* light mode */
+body:not(.dark) #advancedFilters label {
+  color: #4b5563;
+}
+
+body:not(.dark) .filter-group input {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #111827;
+}
+
+
 /* light mode */
 body:not(.dark) .sort-btn {
   background: #ffffff;
