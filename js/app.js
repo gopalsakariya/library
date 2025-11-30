@@ -2,15 +2,12 @@
    1. GOOGLE SHEET CONFIG & BOOK STORAGE
 ============================================ */
 
-// Your Google Sheet ID
 const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
 const SHEET_TAB = "Sheet1";
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
-// Books stored here
 const books = [];
 
-/* Cover helper: supports URLs and local paths */
 function getCoverPath(rawCover) {
   let cover = (rawCover || "").trim();
   if (!cover) return "img/book.jpg";
@@ -26,11 +23,16 @@ const booksContainer = document.getElementById("booksContainer");
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearSearchButton = document.getElementById("clearSearchButton");
+
 const sizeFilterSelect = document.getElementById("sizeFilter");
 const pagesFilterSelect = document.getElementById("pagesFilter");
+const sortSelect = document.getElementById("sortSelect");
 
-const sortControls = document.getElementById("sortControls");
-const sortButtons = document.querySelectorAll(".sort-btn");
+const viewSwitch = document.getElementById("viewSwitch");
+const viewButtons = viewSwitch
+  ? viewSwitch.querySelectorAll(".view-btn")
+  : [];
+
 const resultsInfo = document.getElementById("resultsInfo");
 
 const paginationControls = document.getElementById("paginationControls");
@@ -64,7 +66,7 @@ function mapRowToBook(row) {
   const title = (row.title || "").trim();
   const author = (row.author || "").trim();
 
-  // Normalize category: first letter uppercase, rest lowercase
+  // Normalize category
   let category = (row.category || "Other").trim();
   if (category) {
     category =
@@ -76,7 +78,7 @@ function mapRowToBook(row) {
   const description = (row.description || "").trim();
   const details = (row.details || "").trim();
 
-  // Parse tags string, e.g. "PDF, 10 MB, 150 Pages"
+  // Parse tags like "PDF, 10 MB, 150 Pages"
   const rawTags = (row.tags || "").trim();
 
   let tags = [];
@@ -95,7 +97,6 @@ function mapRowToBook(row) {
     parts.forEach(p => {
       const lower = p.toLowerCase();
 
-      // Detect format
       if (!format) {
         if (lower === "pdf") format = "PDF";
         else if (lower === "epub") format = "EPUB";
@@ -103,14 +104,12 @@ function mapRowToBook(row) {
         else if (lower === "doc" || lower === "docx") format = "DOC";
       }
 
-      // Detect "10 MB"
       const mbMatch = lower.match(/([\d.]+)\s*mb/);
       if (mbMatch) {
         const value = parseFloat(mbMatch[1]);
         if (!isNaN(value)) sizeMB = value;
       }
 
-      // Detect "150 Pages"
       const pagesMatch = lower.match(/(\d+)\s*pages?/);
       if (pagesMatch) {
         const value = parseInt(pagesMatch[1], 10);
@@ -119,9 +118,7 @@ function mapRowToBook(row) {
     });
   }
 
-  // direct URL for PDF (Cloudflare R2, etc.)
   const pdfUrl = (row.pdfurl || row.pdf || row.url || "").trim();
-
   const cover = getCoverPath(row.cover);
 
   return {
@@ -139,7 +136,6 @@ function mapRowToBook(row) {
     cover
   };
 }
-
 
 let historyInitialized = false;
 let exitConfirmShown = false;
@@ -172,7 +168,6 @@ function applyBooksAndInit(newBooks) {
 }
 
 function loadBooksFromSheet() {
-  // Fast path: cache
   try {
     const cacheStr = localStorage.getItem("booksCache");
     if (cacheStr) {
@@ -187,7 +182,6 @@ function loadBooksFromSheet() {
     booksContainer.innerHTML = "<p>Loading books...</p>";
   }
 
-  // Always fetch latest in background
   fetch(SHEET_URL)
     .then(res => res.json())
     .then(rows => {
@@ -215,6 +209,7 @@ const pageSize = 40;
 
 let currentSizeFilter = "any";
 let currentPagesFilter = "any";
+let currentView = "grid"; // "grid" | "list"
 
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
@@ -342,7 +337,7 @@ function toggleBookmark(title) {
 }
 
 /* ============================================
-   9. CATEGORY & FILTERING
+   9. CATEGORIES + FILTER CORE
 ============================================ */
 
 function getAllCategories() {
@@ -418,47 +413,32 @@ function changeCategory(cat) {
   currentSort = "relevance";
   currentPage = 1;
 
-  // reset advanced filters
   currentSizeFilter = "any";
   currentPagesFilter = "any";
   if (sizeFilterSelect) sizeFilterSelect.value = "any";
   if (pagesFilterSelect) pagesFilterSelect.value = "any";
-
-  sortControls.classList.add("hidden");
-  sortButtons.forEach(b => b.classList.remove("active"));
-  const relBtn = document.querySelector('.sort-btn[data-sort="relevance"]');
-  if (relBtn) relBtn.classList.add("active");
+  if (sortSelect) sortSelect.value = "relevance";
 
   renderBooks();
 }
-
-
-/* ============================================
-   9.1 FILTER + SORT CORE
-============================================ */
 
 function getFilteredBooks() {
   const q = normalize(currentSearch);
 
   let items = books.map(book => {
-    // Bookmark filter
     if (currentCategory === "bookmarked" && !bookmarks.includes(book.title)) {
       return { book, score: -1 };
     }
 
-    // Category filter
     if (currentCategory !== "all" && currentCategory !== "bookmarked") {
       if (normalize(book.category) !== normalize(currentCategory)) {
         return { book, score: -1 };
       }
     }
 
-    // Size filter (using sizeMB from tags)
     if (currentSizeFilter !== "any") {
       const size = typeof book.sizeMB === "number" ? book.sizeMB : null;
-      if (size == null) {
-        return { book, score: -1 };
-      }
+      if (size == null) return { book, score: -1 };
       if (currentSizeFilter === "small" && !(size < 5)) {
         return { book, score: -1 };
       }
@@ -470,12 +450,9 @@ function getFilteredBooks() {
       }
     }
 
-    // Pages filter (using pages from tags)
     if (currentPagesFilter !== "any") {
       const p = typeof book.pages === "number" ? book.pages : null;
-      if (p == null) {
-        return { book, score: -1 };
-      }
+      if (p == null) return { book, score: -1 };
       if (currentPagesFilter === "short" && !(p < 100)) {
         return { book, score: -1 };
       }
@@ -487,7 +464,6 @@ function getFilteredBooks() {
       }
     }
 
-    // No search query -> neutral positive score
     if (!q) return { book, score: 1 };
 
     const tagsText =
@@ -503,10 +479,8 @@ function getFilteredBooks() {
     return { book, score: s };
   });
 
-  // Remove filtered out items
   items = items.filter(x => x.score > 0 || (!q && x.score === 1));
 
-  // Sorting
   if (currentSort === "title") {
     items.sort((a, b) => a.book.title.localeCompare(b.book.title));
   } else if (currentSort === "author") {
@@ -550,7 +524,6 @@ function getFilteredBooks() {
       return pb - pa;
     });
   } else {
-    // relevance
     items.sort(
       (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
     );
@@ -560,7 +533,7 @@ function getFilteredBooks() {
 }
 
 /* ============================================
-   10. POPUP / MODALS & BACK HANDLING
+   10. POPUPS / MODALS
 ============================================ */
 
 function isAnyPopupOpen() {
@@ -591,7 +564,6 @@ function openBookModal(book) {
       ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
       : "";
 
-  // Build file info text
   let fileInfoHtml = "";
   const fileInfoParts = [];
 
@@ -686,7 +658,6 @@ function openBookModal(book) {
   setActiveNav(null);
   updatePopupOpenClass();
 
-  // Attach bookmark handler (do not close modal)
   const bookmarkToggleBtn = modalBody.querySelector("#bookmarkToggleBtn");
   if (bookmarkToggleBtn) {
     bookmarkToggleBtn.addEventListener("click", () => {
@@ -749,7 +720,7 @@ categoryList.addEventListener("click", e => {
   closeCategoryModal();
 });
 
-/* SEARCH OVERLAY */
+/* SEARCH OVERLAY (mobile) */
 
 function ensureSearchOverlay() {
   if (searchOverlay) return;
@@ -785,7 +756,6 @@ function ensureSearchOverlay() {
     currentSearch = overlayInput.value.trim();
     searchInput.value = currentSearch;
     currentPage = 1;
-    sortControls.classList.toggle("hidden", !currentSearch);
     renderBooks();
     closeSearchOverlay();
   }
@@ -856,6 +826,7 @@ function renderBooks() {
   }
 
   booksContainer.innerHTML = "";
+  booksContainer.classList.toggle("list-view", currentView === "list");
 
   items.forEach(({ book }) => {
     const card = document.createElement("div");
@@ -884,14 +855,15 @@ function renderBooks() {
         <div class="book-author">by ${highlight(book.author)}</div>
         <div class="book-category">Category: ${highlight(book.category)}</div>
         <div class="book-desc">${highlight(book.description)}</div>
-      </div>
 
-      <div class="book-links">
-        <a href="${book.pdfUrl || "#"}"
-           target="_blank"
-           rel="noopener noreferrer">
-          <i class="fa-solid fa-book-open"></i> Open PDF
-        </a>
+        <div class="book-links">
+          <a href="${book.pdfUrl || "#"}"
+             target="_blank"
+             rel="noopener noreferrer">
+            <i class="fa-solid fa-book-open"></i>
+            <span>Get PDF</span>
+          </a>
+        </div>
       </div>
     `;
 
@@ -910,13 +882,12 @@ function renderBooks() {
 }
 
 /* ============================================
-   12. SEARCH, CLEAR, SORT, FILTER EVENTS
+   12. SEARCH / FILTER / SORT / VIEW EVENTS
 ============================================ */
 
 searchButton.addEventListener("click", () => {
   currentSearch = searchInput.value.trim();
   currentPage = 1;
-  sortControls.classList.toggle("hidden", !currentSearch);
   renderBooks();
 });
 
@@ -928,11 +899,9 @@ clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   currentPage = 1;
-  sortControls.classList.add("hidden");
   renderBooks();
 });
 
-// Advanced size/pages filter controls
 if (sizeFilterSelect) {
   sizeFilterSelect.addEventListener("change", () => {
     currentSizeFilter = sizeFilterSelect.value || "any";
@@ -949,11 +918,22 @@ if (pagesFilterSelect) {
   });
 }
 
-sortButtons.forEach(btn => {
+if (sortSelect) {
+  sortSelect.addEventListener("change", () => {
+    currentSort = sortSelect.value || "relevance";
+    currentPage = 1;
+    renderBooks();
+  });
+}
+
+/* View switch: grid / list */
+
+viewButtons.forEach(btn => {
   btn.addEventListener("click", () => {
-    sortButtons.forEach(b => b.classList.remove("active"));
+    const view = btn.dataset.view || "grid";
+    currentView = view;
+    viewButtons.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
-    currentSort = btn.dataset.sort || "relevance";
     renderBooks();
   });
 });
@@ -1010,7 +990,6 @@ function handleBackNavigation(event) {
   const state = event.state || { screen: "home" };
 
   if (state.screen === "home") {
-    // 1) If a book modal is open, close it
     if (!bookModal.classList.contains("hidden")) {
       closeBookModal();
       if (window.history && window.history.pushState) {
@@ -1019,7 +998,6 @@ function handleBackNavigation(event) {
       return;
     }
 
-    // 2) If category modal is open, close it
     if (!categoryModal.classList.contains("hidden")) {
       closeCategoryModal();
       if (window.history && window.history.pushState) {
@@ -1028,7 +1006,6 @@ function handleBackNavigation(event) {
       return;
     }
 
-    // 3) If search overlay open, close it
     if (searchOverlay && !searchOverlay.classList.contains("hidden")) {
       closeSearchOverlay();
       if (window.history && window.history.pushState) {
@@ -1037,7 +1014,6 @@ function handleBackNavigation(event) {
       return;
     }
 
-    // 4) Already on home -> once ask before leaving
     if (!exitConfirmShown) {
       const leave = window.confirm("Do you want to leave the library app?");
       if (leave) {
