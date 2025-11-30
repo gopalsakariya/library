@@ -1,33 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<link rel="manifest" href="manifest.json" />
-<meta name="theme-color" content="#0b1220" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0b1220" />
   <meta charset="UTF-8" />
   <title>Library.TheGopal.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-
   <!-- Font Awesome -->
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-/>
-<link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css"
-/>
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  />
 
+  <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
-
-<body>
-
+<body class="dark">
 <header>
-  <h1>Library.TheGopal.com</h1>
+  <div class="header-left">
+    <h1>Library</h1>
+    <span class="header-subtitle">TheGopal.com</span>
+  </div>
+
   <div class="header-right">
-    <!-- Theme toggle icon (moon/sun via JS) -->
     <button id="themeToggle" class="theme-toggle" type="button" title="Toggle dark / light">
       <i class="fa-regular fa-moon"></i>
     </button>
@@ -35,8 +31,7 @@
 </header>
 
 <main>
-
-   <!-- SEARCH SECTION -->
+  <!-- SEARCH SECTION -->
   <section id="search">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
@@ -46,6 +41,23 @@
       <button id="clearSearchButton" title="Clear search">
         <i class="fa-solid fa-xmark"></i>
       </button>
+    </div>
+
+    <!-- Advanced filters: size + pages -->
+    <div id="filterRow">
+      <select id="sizeFilter">
+        <option value="any">Any size</option>
+        <option value="small">&lt; 5 MB</option>
+        <option value="medium">5 - 20 MB</option>
+        <option value="large">&gt; 20 MB</option>
+      </select>
+
+      <select id="pagesFilter">
+        <option value="any">Any length</option>
+        <option value="short">&lt; 100 pages</option>
+        <option value="medium">100 - 300 pages</option>
+        <option value="long">&gt; 300 pages</option>
+      </select>
     </div>
 
     <div id="sortControls" class="hidden">
@@ -62,33 +74,22 @@
       <button class="sort-btn" data-sort="category" title="Sort by category">
         <i class="fa-solid fa-layer-group"></i>
       </button>
-      <!-- NEW: sort by file size -->
-      <button class="sort-btn" data-sort="size" title="Sort by file size (small → large)">
-        <i class="fa-solid fa-file-arrow-down"></i>
+      <button class="sort-btn" data-sort="sizeAsc" title="Sort by file size (small to large)">
+        <i class="fa-solid fa-arrow-up-short-wide"></i>
       </button>
-      <!-- NEW: sort by pages -->
-      <button class="sort-btn" data-sort="pages" title="Sort by pages (many → few)">
+      <button class="sort-btn" data-sort="sizeDesc" title="Sort by file size (large to small)">
+        <i class="fa-solid fa-arrow-down-wide-short"></i>
+      </button>
+      <button class="sort-btn" data-sort="pagesAsc" title="Sort by pages (few to many)">
         <i class="fa-solid fa-file-lines"></i>
       </button>
-    </div>
-
-    <!-- NEW: Advanced filters using MB and Pages -->
-    <div id="advancedFilters">
-      <div class="filter-group">
-        <label for="minSizeInput">File size (MB):</label>
-        <input type="number" id="minSizeInput" placeholder="Min" min="0" />
-        <input type="number" id="maxSizeInput" placeholder="Max" min="0" />
-      </div>
-      <div class="filter-group">
-        <label for="minPagesInput">Pages:</label>
-        <input type="number" id="minPagesInput" placeholder="Min" min="0" />
-        <input type="number" id="maxPagesInput" placeholder="Max" min="0" />
-      </div>
+      <button class="sort-btn" data-sort="pagesDesc" title="Sort by pages (many to few)">
+        <i class="fa-solid fa-file"></i>
+      </button>
     </div>
 
     <div id="resultsInfo"></div>
   </section>
-
 
   <!-- CATEGORY BUTTON ROW -->
   <section id="categories">
@@ -101,21 +102,19 @@
   </section>
 
   <!-- BOOKS GRID -->
-  <section id="all-books">
-
-    <!-- Pagination controls -->
-    <div id="paginationControls" class="pagination hidden">
-      <button id="prevPage" type="button">
-        <i class="fa-solid fa-angle-left"></i>
-      </button>
-      <span id="pageInfo"></span>
-      <button id="nextPage" type="button">
-        <i class="fa-solid fa-angle-right"></i>
-      </button>
-    </div>
-
+  <section id="booksSection">
     <div id="booksContainer" class="books-grid"></div>
 
+    <!-- PAGINATION -->
+    <div id="paginationControls" class="pagination hidden">
+      <button id="prevPage" type="button">&laquo; Prev</button>
+      <span id="pageInfo"></span>
+      <button id="nextPage" type="button">Next &raquo;</button>
+    </div>
+  </section>
+
+  <!-- MODALS -->
+  <section id="modals">
     <!-- BOOK DETAILS MODAL -->
     <div id="bookModal" class="modal hidden">
       <div class="modal-overlay"></div>
@@ -141,32 +140,33 @@
       </div>
     </div>
   </section>
-
 </main>
 
-<footer>
-  <p>© 2025 Library of TheGopal.com</p>
-</footer>
-
-<!-- Android-style bottom navigation (icons only) -->
+<!-- MOBILE BOTTOM NAV -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
-  <button data-nav="home" title="Home">
-    <i class="fa-solid fa-house nav-icon"></i>
+  <button data-nav="home" class="nav-active">
+    <i class="fa-solid fa-house"></i>
+    <span>Home</span>
   </button>
-  <button data-nav="bookmarks" title="Saved">
-    <i class="fa-solid fa-bookmark nav-icon"></i>
+  <button data-nav="bookmarks">
+    <i class="fa-solid fa-star"></i>
+    <span>Bookmarks</span>
   </button>
-  <button data-nav="categories" title="Categories">
-    <i class="fa-solid fa-layer-group nav-icon"></i>
+  <button data-nav="categories">
+    <i class="fa-solid fa-layer-group"></i>
+    <span>Categories</span>
   </button>
-  <button data-nav="search" title="Search">
-    <i class="fa-solid fa-magnifying-glass nav-icon"></i>
+  <button data-nav="search">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span>Search</span>
   </button>
 </nav>
 
+<footer>
+  <p>Library.TheGopal.com • Powered by Google Sheets & Cloudflare R2</p>
+</footer>
 
 <script src="js/app.js"></script>
-
 
 <script>
 if ("serviceWorker" in navigator) {
