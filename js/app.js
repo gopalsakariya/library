@@ -27,6 +27,7 @@ const clearSearchButton = document.getElementById("clearSearchButton");
 const sizeFilterSelect = document.getElementById("sizeFilter");
 const pagesFilterSelect = document.getElementById("pagesFilter");
 const sortSelect = document.getElementById("sortSelect");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
 
 const viewSwitch = document.getElementById("viewSwitch");
 const viewButtons = viewSwitch
@@ -56,7 +57,7 @@ const categoryList = document.getElementById("categoryList");
 const mobileBottomNav = document.getElementById("mobileBottomNav");
 const headerEl = document.querySelector("header");
 
-let searchOverlay = null; // created lazily
+let searchOverlay = null;
 
 /* ============================================
    3. LOAD BOOKS FROM GOOGLE SHEET + CACHE
@@ -66,7 +67,6 @@ function mapRowToBook(row) {
   const title = (row.title || "").trim();
   const author = (row.author || "").trim();
 
-  // Normalize category
   let category = (row.category || "Other").trim();
   if (category) {
     category =
@@ -78,7 +78,6 @@ function mapRowToBook(row) {
   const description = (row.description || "").trim();
   const details = (row.details || "").trim();
 
-  // Parse tags like "PDF, 10 MB, 150 Pages"
   const rawTags = (row.tags || "").trim();
 
   let tags = [];
@@ -209,7 +208,7 @@ const pageSize = 40;
 
 let currentSizeFilter = "any";
 let currentPagesFilter = "any";
-let currentView = "grid"; // "grid" | "list"
+let currentView = "grid";
 
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
@@ -415,9 +414,18 @@ function changeCategory(cat) {
 
   currentSizeFilter = "any";
   currentPagesFilter = "any";
-  if (sizeFilterSelect) sizeFilterSelect.value = "any";
-  if (pagesFilterSelect) pagesFilterSelect.value = "any";
-  if (sortSelect) sortSelect.value = "relevance";
+  if (sizeFilterSelect) {
+    sizeFilterSelect.value = "any";
+    sizeFilterSelect.classList.remove("active-filter");
+  }
+  if (pagesFilterSelect) {
+    pagesFilterSelect.value = "any";
+    pagesFilterSelect.classList.remove("active-filter");
+  }
+  if (sortSelect) {
+    sortSelect.value = "relevance";
+    sortSelect.classList.remove("active-filter");
+  }
 
   renderBooks();
 }
@@ -559,44 +567,11 @@ function openBookModal(book) {
 
   const cover = book.cover || "img/book.jpg";
 
+  // Build tags area: use raw tags (PDF, 197 KB, 61 Pages etc.)
   const tagChips =
     book.tags && book.tags.length
       ? book.tags.map(t => `<span class="tag-chip">${t}</span>`).join(" ")
       : "";
-
-  let fileInfoHtml = "";
-  const fileInfoParts = [];
-
-  if (book.format) {
-    fileInfoParts.push(`<strong>Format:</strong> ${book.format}`);
-  }
-
-  if (typeof book.sizeMB === "number") {
-    let sizeLabel = "";
-    if (book.sizeMB < 5) sizeLabel = "Small file";
-    else if (book.sizeMB <= 20) sizeLabel = "Medium file";
-    else sizeLabel = "Large file";
-    fileInfoParts.push(`<strong>Size:</strong> ${book.sizeMB} MB (${sizeLabel})`);
-  }
-
-  if (typeof book.pages === "number") {
-    let lengthLabel = "";
-    if (book.pages < 100) lengthLabel = "Short";
-    else if (book.pages <= 300) lengthLabel = "Medium";
-    else lengthLabel = "Long";
-    fileInfoParts.push(`<strong>Length:</strong> ${book.pages} pages (${lengthLabel})`);
-  }
-
-  if (fileInfoParts.length) {
-    fileInfoHtml = `
-      <div class="modal-section">
-        <h4>File info</h4>
-        <p>${fileInfoParts.join("<br/>")}</p>
-      </div>
-    `;
-  }
-
-  const isBookmarked = bookmarks.includes(book.title);
 
   modalBody.innerHTML = `
     <div class="modal-book-header">
@@ -617,10 +592,14 @@ function openBookModal(book) {
       </div>
     </div>
 
-    <div class="modal-section">
-      <h4>Summary</h4>
-      <p>${book.description}</p>
-    </div>
+    ${
+      book.description
+        ? `<div class="modal-section">
+             <h4>Summary</h4>
+             <p>${book.description}</p>
+           </div>`
+        : ""
+    }
 
     ${
       book.details
@@ -630,8 +609,6 @@ function openBookModal(book) {
            </div>`
         : ""
     }
-
-    ${fileInfoHtml}
 
     <div class="modal-section modal-actions">
       <a href="${book.pdfUrl || "#"}"
@@ -645,7 +622,7 @@ function openBookModal(book) {
               class="modal-btn"
               id="bookmarkToggleBtn">
         ${
-          isBookmarked
+          bookmarks.includes(book.title)
             ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
             : '<i class="fa-regular fa-star"></i><span>Bookmark</span>'
         }
@@ -905,6 +882,10 @@ clearSearchButton.addEventListener("click", () => {
 if (sizeFilterSelect) {
   sizeFilterSelect.addEventListener("change", () => {
     currentSizeFilter = sizeFilterSelect.value || "any";
+    sizeFilterSelect.classList.toggle(
+      "active-filter",
+      currentSizeFilter !== "any"
+    );
     currentPage = 1;
     renderBooks();
   });
@@ -913,6 +894,10 @@ if (sizeFilterSelect) {
 if (pagesFilterSelect) {
   pagesFilterSelect.addEventListener("change", () => {
     currentPagesFilter = pagesFilterSelect.value || "any";
+    pagesFilterSelect.classList.toggle(
+      "active-filter",
+      currentPagesFilter !== "any"
+    );
     currentPage = 1;
     renderBooks();
   });
@@ -921,6 +906,33 @@ if (pagesFilterSelect) {
 if (sortSelect) {
   sortSelect.addEventListener("change", () => {
     currentSort = sortSelect.value || "relevance";
+    sortSelect.classList.toggle("active-filter", currentSort !== "relevance");
+    currentPage = 1;
+    renderBooks();
+  });
+}
+
+/* Clear all filters (size, length, sort) */
+
+if (clearFiltersButton) {
+  clearFiltersButton.addEventListener("click", () => {
+    currentSizeFilter = "any";
+    currentPagesFilter = "any";
+    currentSort = "relevance";
+
+    if (sizeFilterSelect) {
+      sizeFilterSelect.value = "any";
+      sizeFilterSelect.classList.remove("active-filter");
+    }
+    if (pagesFilterSelect) {
+      pagesFilterSelect.value = "any";
+      pagesFilterSelect.classList.remove("active-filter");
+    }
+    if (sortSelect) {
+      sortSelect.value = "relevance";
+      sortSelect.classList.remove("active-filter");
+    }
+
     currentPage = 1;
     renderBooks();
   });
