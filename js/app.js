@@ -7,9 +7,10 @@ const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
 const SHEET_TAB = "Sheet1";
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
-// Books stored here
+// Force dark mode class for gamer theme
 document.body.classList.add("dark");
 
+// Books stored here
 const books = [];
 
 /* Cover helper: supports URLs and local paths */
@@ -30,20 +31,23 @@ function getCoverPath(rawCover) {
   return `img/${cover}`;
 }
 
-/* Mapping from sheet row => book object used in app */
+/* Mapping from sheet row => book object used in app
+   NOTE: ALL COLUMN NAMES ARE LOWERCASE NOW:
+   title, author, category, description, details, tags, pdf, cover
+*/
 function mapRowToBook(row) {
   return {
-    title: (row["Title"] || "").trim(),
-    author: (row["Author"] || "").trim(),
-    category: (row["Category"] || "Uncategorized").trim(),
-    description: (row["Description"] || "").trim(),
-    details: (row["Details"] || "").trim(),
-    tags: (row["Tags"] || "")
+    title: (row["title"] || row["Title"] || "").trim(),
+    author: (row["author"] || row["Author"] || "").trim(),
+    category: (row["category"] || row["Category"] || "uncategorized").trim(),
+    description: (row["description"] || row["Description"] || "").trim(),
+    details: (row["details"] || row["Details"] || "").trim(),
+    tags: (row["tags"] || row["Tags"] || "")
       .split(",")
       .map((t) => t.trim())
       .filter(Boolean),
-    pdfUrl: (row["PDF"] || "").trim(),
-    cover: getCoverPath(row["Cover"]),
+    pdfUrl: (row["pdf"] || row["PDF"] || "").trim(),
+    cover: getCoverPath(row["cover"] || row["Cover"]),
   };
 }
 
@@ -181,11 +185,11 @@ async function loadBooks() {
 function scoreBookForSearch(book, query) {
   if (!query) return 1; // no search => equal baseline
 
-  const title = book.title.toLowerCase();
-  const author = book.author.toLowerCase();
-  const category = book.category.toLowerCase();
+  const title = (book.title || "").toLowerCase();
+  const author = (book.author || "").toLowerCase();
+  const category = (book.category || "").toLowerCase();
   const description = (book.description || "").toLowerCase();
-  const tags = (book.tags || []).map((t) => t.toLowerCase());
+  const tags = (book.tags || []).map((t) => (t || "").toLowerCase());
 
   let score = 0;
 
@@ -216,7 +220,7 @@ function getFilteredBooks() {
     filtered = filtered.filter(isBookBookmarked);
   } else if (currentCategory !== "home") {
     filtered = filtered.filter(
-      (b) => b.category.toLowerCase() === currentCategory.toLowerCase()
+      (b) => (b.category || "").toLowerCase() === currentCategory.toLowerCase()
     );
   }
 
@@ -313,7 +317,8 @@ function renderCategories() {
     .forEach((cat) => {
       const btn = document.createElement("button");
       btn.className =
-        "category-btn" + (currentCategory === cat.toLowerCase() ? " active" : "");
+        "category-btn" +
+        (currentCategory === cat.toLowerCase() ? " active" : "");
       btn.textContent = cat;
       btn.addEventListener("click", () => {
         currentCategory = cat.toLowerCase();
@@ -610,7 +615,7 @@ nextPageBtn.addEventListener("click", () => {
   renderAll();
 });
 
-/* Category modal open from bottom nav button */
+/* Category modal / bottom nav buttons */
 navButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
     const target = btn.getAttribute("data-nav");
