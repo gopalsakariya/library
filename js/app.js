@@ -1,16 +1,16 @@
 /* ============================================================
-   0. CONFIG – OPEN SHEET
+   OPEN SHEET CONFIG
 ============================================================ */
-
 const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
 const SHEET_TAB = "Sheet1";
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
 /* ============================================================
-   1. STATE + DOM
+   STATE
 ============================================================ */
+let books = [];
+let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
-const books = [];
 let currentCategory = "all";
 let currentSearch = "";
 let currentSort = "relevance";
@@ -18,15 +18,15 @@ let currentSizeFilter = "any";
 let currentPagesFilter = "any";
 let currentView = "grid";
 
-let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
-
+/* ============================================================
+   DOM ELEMENTS
+============================================================ */
 const booksContainer = document.getElementById("booksContainer");
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearSearchButton = document.getElementById("clearSearchButton");
-const resultsInfo = document.getElementById("resultsInfo");
 
-const categoriesRow = document.getElementById("categories");
+const resultsInfo = document.getElementById("resultsInfo");
 const categoriesLeft = document.getElementById("categories-left");
 
 const filtersModal = document.getElementById("filtersModal");
@@ -37,417 +37,204 @@ const sizeFilterSelect = document.getElementById("sizeFilter");
 const pagesFilterSelect = document.getElementById("pagesFilter");
 
 const sortInlineButton = document.getElementById("sortInlineButton");
-let sortMenu = null;
+const mobileBottomNav = document.getElementById("mobileBottomNav");
 
 const viewSwitch = document.getElementById("viewSwitch");
-const viewButtons = viewSwitch
-  ? viewSwitch.querySelectorAll(".view-btn")
-  : [];
+const viewButtons = document.querySelectorAll(".view-btn");
 
 const bookModal = document.getElementById("bookModal");
 const bookModalOverlay = bookModal.querySelector(".modal-overlay");
 const bookModalClose = bookModal.querySelector(".modal-close");
 const bookModalBody = bookModal.querySelector(".modal-body");
 
-const themeToggle = document.getElementById("themeToggle");
-const mobileBottomNav = document.getElementById("mobileBottomNav");
+let sortMenu = null;
 
 /* ============================================================
-   2. THEME TOGGLE (Dark / Light)
+   HELPERS
 ============================================================ */
-
-function applyTheme(theme) {
-  if (theme === "light") {
-    document.body.classList.remove("dark");
-    document.body.classList.add("light");
-    if (themeToggle) themeToggle.innerHTML = '<i class="fa-regular fa-moon"></i>';
-  } else {
-    document.body.classList.add("dark");
-    document.body.classList.remove("light");
-    if (themeToggle) themeToggle.innerHTML = '<i class="fa-regular fa-sun"></i>';
-  }
-}
-
-const savedTheme = localStorage.getItem("theme") || "dark";
-applyTheme(savedTheme);
-
-if (themeToggle) {
-  themeToggle.addEventListener("click", () => {
-    const next = document.body.classList.contains("dark") ? "light" : "dark";
-    localStorage.setItem("theme", next);
-    applyTheme(next);
-  });
-}
-
-/* ============================================================
-   3. HELPERS
-============================================================ */
-
-function getCoverPath(rawCover) {
-  const c = (rawCover || "").trim();
-  if (!c) return "img/book.jpg";
-  if (c.startsWith("http://") || c.startsWith("https://")) return c;
-  return c; // relative path
-}
-
-function normalize(str) {
-  return (str || "").toString().toLowerCase();
-}
-
-function escapeRegExp(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function norm(x) {
+  return (x || "").toString().trim().toLowerCase();
 }
 
 function highlight(text) {
   if (!currentSearch) return text;
   const q = currentSearch.trim();
   if (!q) return text;
-  return text.replace(
-    new RegExp(escapeRegExp(q), "ig"),
-    (m) => `<mark>${m}</mark>`
-  );
+  const re = new RegExp(q, "gi");
+  return text.replace(re, (m) => `<mark>${m}</mark>`);
 }
 
-function levenshtein(a, b) {
-  a = normalize(a);
-  b = normalize(b);
-  const m = a.length;
-  const n = b.length;
-  if (!m) return n;
-  if (!n) return m;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(
-        dp[i - 1][j] + 1,
-        dp[i][j - 1] + 1,
-        dp[i - 1][j - 1] + cost
-      );
-    }
-  }
-  return dp[m][n];
-}
-
-function getMatchScore(text, query) {
-  const t = normalize(text);
-  const q = normalize(query);
-  if (!t || !q) return 0;
-
-  const idx = t.indexOf(q);
-  if (idx === 0) return 10 + (t === q ? 5 : 0);
-  if (idx > 0) return 6;
-
-  const dist = levenshtein(t, q);
-  if (dist === 0) return 8;
-  if (dist === 1) return 6;
-  if (dist === 2) return 4;
-  if (dist <= 4) return 2;
-  return 0;
+function getCoverPath(x) {
+  if (!x) return "img/book.jpg";
+  return x;
 }
 
 /* ============================================================
-   4. MAP ROW -> BOOK  (OPEN SHEET)
+   LOAD BOOKS FROM SHEET
 ============================================================ */
+function mapRow(row) {
+  const b = {};
 
-function mapRowToBook(row) {
-  const title = (row.title || "").trim();
-  const author = (row.author || "").trim();
+  b.title = row.title?.trim() || "";
+  b.author = row.author?.trim() || "";
+  b.category = row.category?.trim() || "Other";
+  b.description = row.description?.trim() || "";
+  b.details = row.details?.trim() || "";
 
-  let category = (row.category || "Other").trim();
-  if (category) {
-    category =
-      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
-  } else {
-    category = "Other";
-  }
+  b.cover = getCoverPath(row.cover?.trim());
 
-  const description = (row.description || "").trim();
-  const details = (row.details || "").trim();
+  // REAL PDF URL ONLY FROM PDF COLUMN
+  b.pdfUrl = row.pdfurl?.trim() || row.pdf?.trim() || "";
 
-  const rawTags = (row.tags || "").trim();
+  // TAGS → used only for tag text, NOT for PDF URL
+  const rawTags = row.tags?.trim() || "";
+  b.tags = rawTags
+    ? rawTags.split(",").map((x) => x.trim()).filter(Boolean)
+    : [];
 
-  let tags = [];
-  let format = "";
-  let sizeMB = null;
-  let pages = null;
+  // DETECT size & pages from tags
+  b.sizeMB = null;
+  b.pages = null;
+  b.tags.forEach((tag) => {
+    const m1 = tag.toLowerCase().match(/([\d.]+)\s*mb/);
+    if (m1) b.sizeMB = parseFloat(m1[1]);
 
-  if (rawTags) {
-    const parts = rawTags
-      .split(",")
-      .map((p) => p.trim())
-      .filter(Boolean);
+    const m2 = tag.toLowerCase().match(/(\d+)\s*pages?/);
+    if (m2) b.pages = parseInt(m2[1]);
+  });
 
-    tags = parts;
-
-    parts.forEach((p) => {
-      const lower = p.toLowerCase();
-
-      if (!format) {
-        if (lower === "pdf") format = "PDF";
-        else if (lower === "epub") format = "EPUB";
-        else if (lower === "mobi") format = "MOBI";
-        else if (lower === "doc" || lower === "docx") format = "DOC";
-      }
-
-      const mbMatch = lower.match(/([\d.]+)\s*mb/);
-      if (mbMatch) {
-        const val = parseFloat(mbMatch[1]);
-        if (!isNaN(val)) sizeMB = val;
-      }
-
-      const pagesMatch = lower.match(/(\d+)\s*pages?/);
-      if (pagesMatch) {
-        const val = parseInt(pagesMatch[1], 10);
-        if (!isNaN(val)) pages = val;
-      }
-    });
-  }
-
-  // IMPORTANT: PDF URL ONLY FROM PDF COLUMNS → NOT TAGS
-  const pdfUrl = (
-    row.pdfurl ||
-    row.pdf ||
-    row.url ||
-    ""
-  ).trim();
-
-  const cover = getCoverPath(row.cover);
-
-  return {
-    title,
-    author,
-    category,
-    description,
-    details,
-    tags,
-    rawTags,
-    format,
-    sizeMB,
-    pages,
-    pdfUrl,
-    cover
-  };
+  return b;
 }
 
-/* ============================================================
-   5. LOAD FROM OPENSHEET
-============================================================ */
-
-function loadBooksFromSheet() {
+function loadBooks() {
   fetch(SHEET_URL)
-    .then((res) => res.json())
+    .then((r) => r.json())
     .then((rows) => {
-      books.length = 0;
-      rows.map(mapRowToBook).forEach((b) => books.push(b));
-      renderTopCategories();
+      books = rows.map(mapRow);
+      renderCategories();
       renderBooks();
     })
     .catch((err) => {
-      console.error("Error loading sheet:", err);
-      booksContainer.innerHTML =
-        "<p>Failed to load books. Please try again later.</p>";
+      console.error("Sheet error:", err);
+      booksContainer.innerHTML = "<p>Error loading data</p>";
     });
 }
 
 /* ============================================================
-   6. CATEGORIES
+   CATEGORY ROW
 ============================================================ */
-
-function getAllCategories() {
+function getCategories() {
   const set = new Set(["all", "bookmarked"]);
   books.forEach((b) => set.add(b.category));
   return [...set];
 }
 
-function renderTopCategories() {
-  if (!categoriesLeft) return;
-
-  const cats = getAllCategories();
-
-  categoriesLeft.innerHTML = cats
-    .map((cat) => {
-      const label =
-        cat === "all"
-          ? "All"
-          : cat === "bookmarked"
-          ? "Bookmarked"
-          : cat;
-      return `<button class="category-btn" data-category="${cat}">${label}</button>`;
-    })
+function renderCategories() {
+  categoriesLeft.innerHTML = getCategories()
+    .map(
+      (cat) =>
+        `<button class="category-btn" data-category="${cat}">${cat}</button>`
+    )
     .join("");
 
-  categoriesLeft.addEventListener("click", (e) => {
-    const btn = e.target.closest(".category-btn");
-    if (!btn) return;
-    const cat = btn.dataset.category || "all";
-    changeCategory(cat);
+  categoriesLeft.querySelectorAll(".category-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      changeCategory(btn.dataset.category);
+    });
   });
 
   updateCategoryActive();
 }
 
 function changeCategory(cat) {
-  currentCategory = cat || "all";
+  currentCategory = cat;
   currentSearch = "";
   searchInput.value = "";
+
   updateCategoryActive();
   renderBooks();
-
-  // simple hash for category/bookmarks/home
-  if (cat === "all") {
-    location.hash = "#home";
-  } else if (cat === "bookmarked") {
-    location.hash = "#bookmarks";
-  } else {
-    location.hash = "#category";
-  }
 }
 
 function updateCategoryActive() {
-  if (!categoriesLeft) return;
-  const btns = categoriesLeft.querySelectorAll(".category-btn");
-  btns.forEach((btn) => {
-    const c = btn.dataset.category || "all";
-    btn.classList.toggle("active", c === currentCategory);
-  });
+  categoriesLeft
+    .querySelectorAll(".category-btn")
+    .forEach((btn) =>
+      btn.classList.toggle("active", btn.dataset.category === currentCategory)
+    );
 }
 
 /* ============================================================
-   7. FILTERS (SIZE + PAGES ONLY)
+   FILTERS (SIZE + PAGES ONLY)
 ============================================================ */
-
-function updateFiltersButtonActive() {
-  if (!filtersButton) return;
-  const active =
-    currentSizeFilter !== "any" || currentPagesFilter !== "any";
-  filtersButton.classList.toggle("active", active);
-}
-
-function openFiltersModal() {
-  if (!filtersModal) return;
+function openFilters() {
   filtersModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
-
-  // hash for filters popup
-  location.hash = "#filters";
 }
 
-function closeFiltersModal() {
-  if (!filtersModal) return;
+function closeFilters() {
   filtersModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
 
-if (filtersButton) {
-  filtersButton.addEventListener("click", openFiltersModal);
-}
+filtersButton.addEventListener("click", openFilters);
 
-if (sizeFilterSelect) {
-  sizeFilterSelect.addEventListener("change", () => {
-    currentSizeFilter = sizeFilterSelect.value || "any";
-    sizeFilterSelect.classList.toggle(
-      "active-filter",
-      currentSizeFilter !== "any"
-    );
-    updateFiltersButtonActive();
-    renderBooks();
-  });
-}
+applyFiltersButton.addEventListener("click", () => {
+  closeFilters();
+  renderBooks();
+});
 
-if (pagesFilterSelect) {
-  pagesFilterSelect.addEventListener("change", () => {
-    currentPagesFilter = pagesFilterSelect.value || "any";
-    pagesFilterSelect.classList.toggle(
-      "active-filter",
-      currentPagesFilter !== "any"
-    );
-    updateFiltersButtonActive();
-    renderBooks();
-  });
-}
+clearFiltersButton.addEventListener("click", () => {
+  currentSizeFilter = "any";
+  currentPagesFilter = "any";
+  sizeFilterSelect.value = "any";
+  pagesFilterSelect.value = "any";
+  closeFilters();
+  renderBooks();
+});
 
-if (clearFiltersButton) {
-  clearFiltersButton.addEventListener("click", () => {
-    currentSizeFilter = "any";
-    currentPagesFilter = "any";
-    if (sizeFilterSelect) {
-      sizeFilterSelect.value = "any";
-      sizeFilterSelect.classList.remove("active-filter");
-    }
-    if (pagesFilterSelect) {
-      pagesFilterSelect.value = "any";
-      pagesFilterSelect.classList.remove("active-filter");
-    }
-    updateFiltersButtonActive();
-    renderBooks();
-    closeFiltersModal();
-    location.hash = "#home";
-  });
-}
-
-if (applyFiltersButton) {
-  applyFiltersButton.addEventListener("click", () => {
-    closeFiltersModal();
-  });
-}
-
-if (filtersModal) {
-  const overlay = filtersModal.querySelector(".modal-overlay");
-  const closeBtn = filtersModal.querySelector(".modal-close");
-  overlay.addEventListener("click", closeFiltersModal);
-  closeBtn.addEventListener("click", closeFiltersModal);
-}
+sizeFilterSelect.addEventListener("change", () => {
+  currentSizeFilter = sizeFilterSelect.value;
+  renderBooks();
+});
+pagesFilterSelect.addEventListener("change", () => {
+  currentPagesFilter = pagesFilterSelect.value;
+  renderBooks();
+});
 
 /* ============================================================
-   8. SORT DROPDOWN (ONLY SORTING)
+   SORT MENU (ONLY SORT OPTIONS)
 ============================================================ */
-
-function initSortDropdown() {
-  if (!sortInlineButton) return;
-
-  // wrap button in .sort-wrapper to match CSS
-  const wrapper = document.createElement("div");
-  wrapper.className = "sort-wrapper";
-
-  const parent = sortInlineButton.parentNode;
-  parent.insertBefore(wrapper, sortInlineButton);
-  wrapper.appendChild(sortInlineButton);
+function initSortMenu() {
+  const wrap = document.createElement("div");
+  wrap.className = "sort-wrapper";
+  sortInlineButton.parentNode.insertBefore(wrap, sortInlineButton);
+  wrap.appendChild(sortInlineButton);
 
   sortMenu = document.createElement("div");
   sortMenu.className = "sort-menu";
-  wrapper.appendChild(sortMenu);
+  wrap.appendChild(sortMenu);
 
-  const options = [
-    { value: "relevance", label: "Relevance" },
-    { value: "title", label: "Title (A–Z)" },
-    { value: "author", label: "Author (A–Z)" },
-    { value: "category", label: "Category (A–Z)" },
-    { value: "sizeAsc", label: "Size (Small → Large)" },
-    { value: "sizeDesc", label: "Size (Large → Small)" },
-    { value: "pagesAsc", label: "Pages (Few → Many)" },
-    { value: "pagesDesc", label: "Pages (Many → Few)" }
+  const opts = [
+    ["relevance", "Relevance"],
+    ["title", "Title (A–Z)"],
+    ["author", "Author (A–Z)"],
+    ["category", "Category"],
+    ["sizeAsc", "Size ↑"],
+    ["sizeDesc", "Size ↓"],
+    ["pagesAsc", "Pages ↑"],
+    ["pagesDesc", "Pages ↓"]
   ];
 
-  options.forEach((opt) => {
+  opts.forEach(([val, label]) => {
     const btn = document.createElement("button");
-    btn.type = "button";
     btn.className = "sort-option";
-    btn.dataset.value = opt.value;
-    btn.textContent = opt.label;
+    btn.dataset.value = val;
+    btn.textContent = label;
     btn.addEventListener("click", () => {
-      currentSort = opt.value;
+      currentSort = val;
       updateSortActive();
       sortMenu.classList.remove("open");
       renderBooks();
-      // hash for sort view
-      if (currentSort === "relevance") {
-        location.hash = "#home";
-      } else {
-        location.hash = "#sort";
-      }
     });
     sortMenu.appendChild(btn);
   });
@@ -458,193 +245,150 @@ function initSortDropdown() {
   });
 
   document.addEventListener("click", () => {
-    if (sortMenu) sortMenu.classList.remove("open");
+    sortMenu.classList.remove("open");
   });
 
   updateSortActive();
 }
 
 function updateSortActive() {
-  if (!sortInlineButton || !sortMenu) return;
-  const options = sortMenu.querySelectorAll(".sort-option");
-  options.forEach((opt) => {
-    const v = opt.dataset.value;
-    opt.classList.toggle("active", v === currentSort);
-  });
   sortInlineButton.classList.toggle("active", currentSort !== "relevance");
+
+  if (!sortMenu) return;
+  sortMenu
+    .querySelectorAll(".sort-option")
+    .forEach((btn) =>
+      btn.classList.toggle("active", btn.dataset.value === currentSort)
+    );
 }
 
 /* ============================================================
-   9. SIZE / PAGES FILTER LOGIC
+   SIZE / PAGE FILTER CHECK
 ============================================================ */
-
-function passesSizeFilter(book) {
-  const mb = typeof book.sizeMB === "number" ? book.sizeMB : null;
-  if (!mb && currentSizeFilter !== "any") return false;
+function passSize(b) {
+  if (!b.sizeMB && currentSizeFilter !== "any") return false;
 
   switch (currentSizeFilter) {
     case "lt1":
-      return mb < 1;
+      return b.sizeMB < 1;
     case "1to100":
-      return mb >= 1 && mb <= 100;
+      return b.sizeMB >= 1 && b.sizeMB <= 100;
     case "100to200":
-      return mb >= 100 && mb <= 200;
+      return b.sizeMB >= 100 && b.sizeMB <= 200;
     case "200to500":
-      return mb >= 200 && mb <= 500;
+      return b.sizeMB >= 200 && b.sizeMB <= 500;
     case "500to1000":
-      return mb >= 500 && mb <= 1000;
+      return b.sizeMB >= 500 && b.sizeMB <= 1000;
     case "gt1000":
-      return mb > 1000;
+      return b.sizeMB > 1000;
     default:
       return true;
   }
 }
 
-function passesPagesFilter(book) {
-  const p = typeof book.pages === "number" ? book.pages : null;
-  if (!p && currentPagesFilter !== "any") return false;
+function passPages(b) {
+  if (!b.pages && currentPagesFilter !== "any") return false;
 
   switch (currentPagesFilter) {
     case "lt100":
-      return p < 100;
+      return b.pages < 100;
     case "100to200":
-      return p >= 100 && p <= 200;
+      return b.pages >= 100 && b.pages <= 200;
     case "200to500":
-      return p >= 200 && p <= 500;
+      return b.pages >= 200 && b.pages <= 500;
     case "500to1000":
-      return p >= 500 && p <= 1000;
+      return b.pages >= 500 && b.pages <= 1000;
     case "1000to2000":
-      return p >= 1000 && p <= 2000;
+      return b.pages >= 1000 && b.pages <= 2000;
     case "gt2000":
-      return p > 2000;
+      return b.pages > 2000;
     default:
       return true;
   }
 }
 
 /* ============================================================
-   10. FILTER + SORT + SEARCH PIPELINE
+   FILTER + SORT + SEARCH
 ============================================================ */
+function filteredBooks() {
+  const q = norm(currentSearch);
 
-function getFilteredAndSortedBooks() {
-  const q = normalize(currentSearch);
+  let arr = books.filter((b) => {
+    if (currentCategory === "bookmarked") {
+      if (!bookmarks.includes(b.title)) return false;
+    } else if (currentCategory !== "all") {
+      if (norm(b.category) !== norm(currentCategory)) return false;
+    }
 
-  let items = books
-    .map((book) => {
-      if (currentCategory === "bookmarked" && !bookmarks.includes(book.title)) {
-        return { book, score: -1 };
-      }
-      if (
-        currentCategory !== "all" &&
-        currentCategory !== "bookmarked" &&
-        normalize(book.category) !== normalize(currentCategory)
-      ) {
-        return { book, score: -1 };
-      }
+    if (!passSize(b)) return false;
+    if (!passPages(b)) return false;
 
-      if (!passesSizeFilter(book)) return { book, score: -1 };
-      if (!passesPagesFilter(book)) return { book, score: -1 };
+    if (q) {
+      const text =
+        b.title +
+        " " +
+        b.author +
+        " " +
+        b.category +
+        " " +
+        b.description +
+        " " +
+        b.tags.join(" ");
 
-      if (!q) return { book, score: 1 };
+      if (!norm(text).includes(q)) return false;
+    }
 
-      const tagsText = book.tags && book.tags.length ? book.tags.join(" ") : "";
+    return true;
+  });
 
-      const score =
-        getMatchScore(book.title, q) * 3 +
-        getMatchScore(book.author, q) * 2 +
-        getMatchScore(book.category, q) * 2 +
-        getMatchScore(book.description, q) +
-        getMatchScore(tagsText, q) * 2;
-
-      return { book, score };
-    })
-    .filter((x) => x.score > 0 || (!q && x.score === 1));
-
-  if (currentSort === "title") {
-    items.sort((a, b) => a.book.title.localeCompare(b.book.title));
-  } else if (currentSort === "author") {
-    items.sort((a, b) => a.book.author.localeCompare(b.book.author));
-  } else if (currentSort === "category") {
-    items.sort((a, b) => a.book.category.localeCompare(b.book.category));
-  } else if (currentSort === "sizeAsc") {
-    items.sort((a, b) => {
-      const sa = a.book.sizeMB;
-      const sb = b.book.sizeMB;
-      if (sa == null && sb == null) return 0;
-      if (sa == null) return 1;
-      if (sb == null) return -1;
-      return sa - sb;
-    });
-  } else if (currentSort === "sizeDesc") {
-    items.sort((a, b) => {
-      const sa = a.book.sizeMB;
-      const sb = b.book.sizeMB;
-      if (sa == null && sb == null) return 0;
-      if (sa == null) return 1;
-      if (sb == null) return -1;
-      return sb - sa;
-    });
-  } else if (currentSort === "pagesAsc") {
-    items.sort((a, b) => {
-      const pa = a.book.pages;
-      const pb = b.book.pages;
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return pa - pb;
-    });
-  } else if (currentSort === "pagesDesc") {
-    items.sort((a, b) => {
-      const pa = a.book.pages;
-      const pb = b.book.pages;
-      if (pa == null && pb == null) return 0;
-      if (pa == null) return 1;
-      if (pb == null) return -1;
-      return pb - pa;
-    });
-  } else {
-    items.sort(
-      (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
-    );
+  switch (currentSort) {
+    case "title":
+      arr.sort((a, b) => a.title.localeCompare(b.title));
+      break;
+    case "author":
+      arr.sort((a, b) => a.author.localeCompare(b.author));
+      break;
+    case "category":
+      arr.sort((a, b) => a.category.localeCompare(b.category));
+      break;
+    case "sizeAsc":
+      arr.sort((a, b) => (a.sizeMB || 0) - (b.sizeMB || 0));
+      break;
+    case "sizeDesc":
+      arr.sort((a, b) => (b.sizeMB || 0) - (a.sizeMB || 0));
+      break;
+    case "pagesAsc":
+      arr.sort((a, b) => (a.pages || 0) - (b.pages || 0));
+      break;
+    case "pagesDesc":
+      arr.sort((a, b) => (b.pages || 0) - (a.pages || 0));
+      break;
   }
 
-  return items.map((x) => x.book);
+  return arr;
 }
 
 /* ============================================================
-   11. RENDER BOOKS
+   RENDER BOOK LIST
 ============================================================ */
-
 function renderBooks() {
-  const items = getFilteredAndSortedBooks();
-  const total = items.length;
+  const arr = filteredBooks();
 
-  if (!currentSearch) {
-    resultsInfo.textContent = "";
-  } else if (!total) {
-    resultsInfo.textContent = "0 results found.";
-  } else {
-    resultsInfo.textContent = `${total} result${total > 1 ? "s" : ""} found.`;
-  }
+  resultsInfo.textContent = arr.length
+    ? `${arr.length} Results`
+    : "No results";
 
-  booksContainer.innerHTML = "";
   booksContainer.classList.toggle("list-view", currentView === "list");
+  booksContainer.innerHTML = "";
 
-  if (!total) {
-    booksContainer.innerHTML = "<p>No books found.</p>";
-    return;
-  }
+  arr.forEach((b) => {
+    const starred = bookmarks.includes(b.title);
 
-  items.forEach((book) => {
     const card = document.createElement("div");
     card.className = "book-card";
 
-    const starred = bookmarks.includes(book.title);
-    const cover = book.cover || "img/book.jpg";
-
     card.innerHTML = `
-      <button class="bookmark-btn" type="button"
-              title="${starred ? "Remove bookmark" : "Bookmark"}">
+      <button class="bookmark-btn" type="button">
         ${
           starred
             ? '<i class="fa-solid fa-star"></i>'
@@ -652,36 +396,30 @@ function renderBooks() {
         }
       </button>
 
-      <img class="book-cover"
-           src="${cover}"
-           alt=""
-           onerror="this.src='img/book.jpg';" />
+      <img class="book-cover" src="${b.cover}" onerror="this.src='img/book.jpg'">
 
       <div class="book-info">
-        <div class="book-title">${highlight(book.title)}</div>
-        <div class="book-author">by ${highlight(book.author)}</div>
-        <div class="book-category">Category: ${highlight(book.category)}</div>
-        <div class="book-desc">${highlight(book.description)}</div>
+        <div class="book-title">${highlight(b.title)}</div>
+        <div class="book-author">by ${highlight(b.author)}</div>
+        <div class="book-category">Category: ${highlight(b.category)}</div>
 
         <div class="book-links">
-          <a href="${book.pdfUrl || "#"}"
-             target="_blank"
-             rel="noopener noreferrer">
-            <i class="fa-solid fa-book-open"></i>
-            <span>Get PDF</span>
+          <a href="${b.pdfUrl}" target="_blank">
+            <i class="fa-solid fa-file-pdf"></i> Get PDF
           </a>
         </div>
       </div>
     `;
 
-    const bmBtn = card.querySelector(".bookmark-btn");
-    bmBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleBookmark(book.title);
-    });
+    card
+      .querySelector(".bookmark-btn")
+      .addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleBookmark(b.title);
+      });
 
     card.addEventListener("click", () => {
-      openBookModal(book);
+      openBookPopup(b);
     });
 
     booksContainer.appendChild(card);
@@ -689,12 +427,11 @@ function renderBooks() {
 }
 
 /* ============================================================
-   12. BOOKMARKS
+   BOOKMARKS
 ============================================================ */
-
 function toggleBookmark(title) {
   if (bookmarks.includes(title)) {
-    bookmarks = bookmarks.filter((t) => t !== title);
+    bookmarks = bookmarks.filter((x) => x !== title);
   } else {
     bookmarks.push(title);
   }
@@ -703,215 +440,143 @@ function toggleBookmark(title) {
 }
 
 /* ============================================================
-   13. POPUP HELPERS
+   BOOK POPUP
 ============================================================ */
-
-function isAnyPopupOpen() {
-  const filtersOpen = filtersModal && !filtersModal.classList.contains("hidden");
-  const bookOpen = bookModal && !bookModal.classList.contains("hidden");
-  return filtersOpen || bookOpen;
-}
-
-function closeAllPopups() {
-  if (filtersModal && !filtersModal.classList.contains("hidden")) {
-    closeFiltersModal();
-  }
-  if (bookModal && !bookModal.classList.contains("hidden")) {
-    closeBookModal();
-  }
-}
-
-/* ============================================================
-   14. BOOK MODAL (correct PDF + no image click to PDF)
-============================================================ */
-
-function openBookModal(book) {
-  const cover = book.cover || "img/book.jpg";
-
-  const tagChips =
-    book.tags && book.tags.length
-      ? book.tags.map((t) => `<span class="tag-chip">${t}</span>`).join(" ")
-      : "";
+function openBookPopup(b) {
+  const cover = b.cover || "img/book.jpg";
 
   bookModalBody.innerHTML = `
     <div class="modal-book-header">
-      <img class="modal-cover" src="${cover}" alt="" onerror="this.src='img/book.jpg';" />
+      <img class="modal-cover" src="${cover}" onerror="this.src='img/book.jpg'">
       <div class="modal-book-main">
-        <h3>${book.title}</h3>
-        <p class="modal-author-category">
-          <span class="mac-author">${book.author}</span>
-          <span class="mac-separator">•</span>
-          <span class="mac-category">${book.category}</span>
-          ${
-            tagChips
-              ? `<span class="mac-separator">•</span>
-                 <span class="mac-tags">${tagChips}</span>`
-              : ""
-          }
-        </p>
+        <h3>${b.title}</h3>
+        <p>${b.author} • ${b.category}</p>
       </div>
     </div>
 
     ${
-      book.description
-        ? `<div class="modal-section">
-             <h4>Summary</h4>
-             <p>${book.description}</p>
-           </div>`
+      b.description
+        ? `<div class="modal-section"><h4>Description</h4><p>${b.description}</p></div>`
         : ""
     }
 
-    ${
-      book.details
-        ? `<div class="modal-section">
-             <h4>Details</h4>
-             <p>${book.details}</p>
-           </div>`
-        : ""
-    }
+    <div class="modal-section">
+      <h4>File Info</h4>
+      <p>Size: ${b.sizeMB || "?"} MB</p>
+      <p>Pages: ${b.pages || "?"}</p>
+    </div>
 
     <div class="modal-actions">
-      <a href="${book.pdfUrl || "#"}"
-         target="_blank"
-         rel="noopener noreferrer"
-         class="modal-btn">
-         <i class="fa-solid fa-file-pdf"></i>
-         <span>Get PDF</span>
+      <a class="modal-btn" href="${b.pdfUrl}" target="_blank">
+        <i class="fa-solid fa-file-pdf"></i> Get PDF
       </a>
-      <button type="button"
-              class="modal-btn"
-              id="bookmarkToggleBtn">
+      <button id="popupBookmark" class="modal-btn">
         ${
-          bookmarks.includes(book.title)
-            ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
-            : '<i class="fa-regular fa-star"></i><span>Bookmark</span>'
+          bookmarks.includes(b.title)
+            ? '<i class="fa-solid fa-star"></i> Remove'
+            : '<i class="fa-regular fa-star"></i> Bookmark'
         }
       </button>
     </div>
   `;
 
+  const popupBtn = bookModalBody.querySelector("#popupBookmark");
+  popupBtn.addEventListener("click", () => {
+    toggleBookmark(b.title);
+    openBookPopup(b); // refresh UI
+  });
+
   bookModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
-
-  // simple hash for book popup
-  location.hash = "#book";
-
-  const bookmarkToggleBtn = bookModalBody.querySelector("#bookmarkToggleBtn");
-  if (bookmarkToggleBtn) {
-    bookmarkToggleBtn.addEventListener("click", () => {
-      const wasBookmarked = bookmarks.includes(book.title);
-      toggleBookmark(book.title);
-      const isNowBookmarked = !wasBookmarked;
-      bookmarkToggleBtn.innerHTML = isNowBookmarked
-        ? '<i class="fa-solid fa-star"></i><span>Remove bookmark</span>'
-        : '<i class="fa-regular fa-star"></i><span>Bookmark</span>';
-    });
-  }
-
-  // NOTE: cover image NOT clickable to PDF
 }
 
-function closeBookModal() {
-  if (!bookModal) return;
+function closeBookPopup() {
   bookModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
 
-bookModalClose.addEventListener("click", closeBookModal);
-bookModalOverlay.addEventListener("click", closeBookModal);
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && isAnyPopupOpen()) {
-    closeAllPopups();
-  }
-});
+bookModalClose.addEventListener("click", closeBookPopup);
+bookModalOverlay.addEventListener("click", closeBookPopup);
 
 /* ============================================================
-   15. VIEW SWITCH (Grid / List)
+   VIEW SWITCHER
 ============================================================ */
-
 viewButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
-    const view = btn.dataset.view || "grid";
-    currentView = view;
     viewButtons.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
+
+    currentView = btn.dataset.view;
     renderBooks();
   });
 });
 
 /* ============================================================
-   16. SEARCH
+   SEARCH
 ============================================================ */
-
 searchButton.addEventListener("click", () => {
   currentSearch = searchInput.value.trim();
   renderBooks();
-  if (currentSearch) {
-    location.hash = "#search";
-  } else {
-    location.hash = "#home";
-  }
 });
 
 clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   renderBooks();
-  location.hash = "#home";
 });
 
 searchInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     currentSearch = searchInput.value.trim();
     renderBooks();
-    if (currentSearch) {
-      location.hash = "#search";
-    } else {
-      location.hash = "#home";
-    }
   }
 });
 
 /* ============================================================
-   17. MOBILE BOTTOM NAV (Android)
+   ANDROID BOTTOM NAV
 ============================================================ */
+mobileBottomNav?.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-nav]");
+  if (!btn) return;
 
-if (mobileBottomNav) {
-  mobileBottomNav.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-nav]");
-    if (!btn) return;
-    const nav = btn.dataset.nav;
+  const nav = btn.dataset.nav;
 
-    if (nav === "home") {
-      resetToHomeView();
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (nav === "bookmarks") {
-      changeCategory("bookmarked");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } else if (nav === "categories") {
-      document
-        .getElementById("categories")
-        .scrollIntoView({ behavior: "smooth" });
-      location.hash = "#categories";
-    } else if (nav === "search") {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      searchInput.focus();
-      location.hash = "#search";
-    }
-  });
-}
+  if (nav === "home") {
+    resetHome();
+  }
+
+  if (nav === "bookmarks") {
+    currentCategory = "bookmarked";
+    updateCategoryActive();
+    renderBooks();
+  }
+
+  if (nav === "categories") {
+    document
+      .getElementById("categories")
+      .scrollIntoView({ behavior: "smooth" });
+  }
+
+  if (nav === "search") {
+    window.scrollTo({ top: 0 });
+    searchInput.focus();
+  }
+});
 
 /* ============================================================
-   18. BACK BUTTON LOGIC
+   BACK BUTTON LOGIC (PERFECT)
 ============================================================ */
+function isPopupOpen() {
+  return (
+    !filtersModal.classList.contains("hidden") ||
+    !bookModal.classList.contains("hidden")
+  );
+}
 
-/*
-  Behavior:
-  - If any popup is open -> back closes popup.
-  - Else if user is NOT on home (category != all OR search OR filters OR sort) -> back resets to home.
-  - Else -> stays on home (user can close tab/app to exit).
-*/
+function closeAllPopups() {
+  if (!filtersModal.classList.contains("hidden")) closeFilters();
+  if (!bookModal.classList.contains("hidden")) closeBookPopup();
+}
 
 function isHomeState() {
   return (
@@ -923,58 +588,40 @@ function isHomeState() {
   );
 }
 
-function resetToHomeView() {
+function resetHome() {
   currentCategory = "all";
   currentSearch = "";
   searchInput.value = "";
   currentSizeFilter = "any";
   currentPagesFilter = "any";
   currentSort = "relevance";
+  sizeFilterSelect.value = "any";
+  pagesFilterSelect.value = "any";
 
-  if (sizeFilterSelect) {
-    sizeFilterSelect.value = "any";
-    sizeFilterSelect.classList.remove("active-filter");
-  }
-  if (pagesFilterSelect) {
-    pagesFilterSelect.value = "any";
-    pagesFilterSelect.classList.remove("active-filter");
-  }
-
-  updateFiltersButtonActive();
-  updateSortActive();
   updateCategoryActive();
   renderBooks();
-  location.hash = "#home";
 }
 
-function handleBackButton(event) {
-  // 1. close popups first
-  if (isAnyPopupOpen()) {
+window.addEventListener("popstate", () => {
+  // 1. if any popup → close it
+  if (isPopupOpen()) {
     closeAllPopups();
-    location.hash = "#home";
     return;
   }
 
-  // 2. if not home, go home
+  // 2. if not in home state → restore home
   if (!isHomeState()) {
-    resetToHomeView();
+    resetHome();
     return;
   }
 
-  // 3. already home and no popup -> do nothing special.
-}
-
-// Hook into history for Android/browser back
-if (window.history && window.history.pushState) {
-  // seed initial state
-  history.replaceState({ app: true, view: "home" }, "", "#home");
-  window.addEventListener("popstate", handleBackButton);
-}
+  // 3. already home → do nothing
+});
 
 /* ============================================================
-   19. INIT
+   INIT
 ============================================================ */
-
-loadBooksFromSheet();
-initSortDropdown();
-updateFiltersButtonActive();
+loadBooks();
+initSortMenu();
+renderCategories();
+renderBooks();
