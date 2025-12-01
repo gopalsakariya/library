@@ -112,6 +112,20 @@ function getCover(x) {
   return x ? x : "img/book.jpg";
 }
 
+function formatCategoryName(str) {
+  if (!str) return "Other";
+  return str
+    .toString()
+    .split(/\s+/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function setHash(hash) {
+  if (window.location.hash === hash) return;
+  window.location.hash = hash;
+}
+
 /* ============================================================
    LOAD BOOKS
 ============================================================ */
@@ -120,7 +134,7 @@ function mapBook(row) {
 
   b.title = row.title?.trim() || "";
   b.author = row.author?.trim() || "";
-  b.category = row.category?.trim() || "Other";
+  b.category = formatCategoryName(row.category?.trim() || "Other");
   b.description = row.description?.trim() || "";
   b.details = row.details?.trim() || "";
   b.cover = getCover(row.cover);
@@ -152,8 +166,7 @@ function loadBooks() {
     .then((rows) => {
       books = rows.map(mapBook);
       buildCategoryPopup();
-      renderBooks();
-      updateTopButtons();
+      applyHashFromLocation(); // sync initial URL state
     })
     .catch(() => {
       booksContainer.innerHTML = "<p>Error loading data</p>";
@@ -164,8 +177,10 @@ function loadBooks() {
    CATEGORY POPUP
 ============================================================ */
 function getCategories() {
-  const s = new Set(["all", "bookmarked"]);
-  books.forEach((b) => s.add(b.category));
+  const s = new Set();
+  books.forEach((b) => {
+    if (b.category) s.add(b.category);
+  });
   return [...s];
 }
 
@@ -179,13 +194,11 @@ function buildCategoryPopup() {
   categoriesModalBody.querySelectorAll(".cat-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentCategory = btn.dataset.cat;
-      categoriesButton.textContent =
-        currentCategory === "all"
-          ? "Category ▼"
-          : currentCategory;
+      categoriesButton.textContent = btn.dataset.cat;
       closeCategoriesPopup();
       updateTopButtons();
       renderBooks();
+      setHash("#category=" + encodeURIComponent(currentCategory));
     });
   });
 }
@@ -204,20 +217,24 @@ categoriesClose.addEventListener("click", closeCategoriesPopup);
 categoriesOverlay.addEventListener("click", closeCategoriesPopup);
 
 /* ============================================================
-   TOP BUTTONS LOGIC
+   TOP BUTTONS LOGIC (All / ★ / Category)
 ============================================================ */
 btnAll.addEventListener("click", () => {
   currentCategory = "all";
   currentSearch = "";
   searchInput.value = "";
+  categoriesButton.textContent = "Category ▼";
   updateTopButtons();
   renderBooks();
+  setHash("#all");
 });
 
 btnBookmarked.addEventListener("click", () => {
   currentCategory = "bookmarked";
+  categoriesButton.textContent = "Category ▼";
   updateTopButtons();
   renderBooks();
+  setHash("#bookmarks");
 });
 
 function updateTopButtons() {
@@ -225,13 +242,13 @@ function updateTopButtons() {
   btnBookmarked.classList.remove("active");
   categoriesButton.classList.remove("active");
 
-  if (currentCategory === "all") btnAll.classList.add("active");
-  else if (currentCategory === "bookmarked") {
-  btnBookmarked.classList.add("active");
-} else if (currentCategory !== "all") {
-  categoriesButton.classList.add("active");
-}
-
+  if (currentCategory === "all") {
+    btnAll.classList.add("active");
+  } else if (currentCategory === "bookmarked") {
+    btnBookmarked.classList.add("active");
+  } else {
+    categoriesButton.classList.add("active");
+  }
 }
 
 /* ============================================================
@@ -240,6 +257,7 @@ function updateTopButtons() {
 function openSearchPopup() {
   searchModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
+  searchPopupInput.value = currentSearch || "";
   searchPopupInput.focus();
 }
 
@@ -511,7 +529,7 @@ function toggleBookmark(title) {
 }
 
 /* ============================================================
-   BOOK POPUP
+   BOOK POPUP + URL (#book=encodedPdfUrl)
 ============================================================ */
 function openBookPopup(b) {
   const chipHTML =
@@ -552,6 +570,11 @@ function openBookPopup(b) {
 
   bookModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
+
+  // update hash for shareable URL
+  if (b.pdfUrl) {
+    setHash("#book=" + encodeURIComponent(b.pdfUrl));
+  }
 
   document
     .getElementById("popupBookmark")
@@ -615,14 +638,18 @@ mobileBottomNav.addEventListener("click", (e) => {
     currentCategory = "all";
     currentSearch = "";
     searchInput.value = "";
+    categoriesButton.textContent = "Category ▼";
     updateTopButtons();
     renderBooks();
+    setHash("#all");
   }
 
   if (nav === "bookmarks") {
     currentCategory = "bookmarked";
+    categoriesButton.textContent = "Category ▼";
     updateTopButtons();
     renderBooks();
+    setHash("#bookmarks");
   }
 
   if (nav === "categories") {
@@ -635,30 +662,71 @@ mobileBottomNav.addEventListener("click", (e) => {
 });
 
 /* ============================================================
-   BACK BUTTON LOGIC
+   URL ROUTING (HASH) – open correct view/popup
 ============================================================ */
-function isAnyPopupOpen() {
-  return (
-    !categoriesModal.classList.contains("hidden") ||
-    !filtersModal.classList.contains("hidden") ||
-    !searchModal.classList.contains("hidden") ||
-    !bookModal.classList.contains("hidden")
-  );
-}
+function applyHashFromLocation() {
+  const hashRaw = window.location.hash || "";
 
-function closeAllPopups() {
-  closeCategoriesPopup();
-  closeSearchPopup();
-  closeBookPopup();
-  filtersModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-}
-
-window.addEventListener("popstate", () => {
-  if (isAnyPopupOpen()) {
-    closeAllPopups();
+  // Close book popup when not on book hash
+  if (!hashRaw.startsWith("#book=")) {
+    closeBookPopup();
   }
-});
+
+  let hash = hashRaw.replace(/^#/, "");
+
+  if (!hash || hash === "all") {
+    currentCategory = "all";
+    currentSearch = "";
+    searchInput.value = "";
+    categoriesButton.textContent = "Category ▼";
+    updateTopButtons();
+    renderBooks();
+    return;
+  }
+
+  if (hash === "bookmarks") {
+    currentCategory = "bookmarked";
+    categoriesButton.textContent = "Category ▼";
+    updateTopButtons();
+    renderBooks();
+    return;
+  }
+
+  if (hash.startsWith("category=")) {
+    const cat = decodeURIComponent(hash.slice("category=".length));
+    currentCategory = formatCategoryName(cat);
+    categoriesButton.textContent = currentCategory;
+    updateTopButtons();
+    renderBooks();
+    return;
+  }
+
+  if (hash.startsWith("book=")) {
+    const pdf = decodeURIComponent(hash.slice("book=".length));
+    const book = books.find((b) => b.pdfUrl === pdf);
+    if (book) {
+      // keep existing category / search, just open popup
+      renderBooks();
+      openBookPopup(book);
+      return;
+    } else {
+      // fallback to all
+      currentCategory = "all";
+      categoriesButton.textContent = "Category ▼";
+      updateTopButtons();
+      renderBooks();
+      return;
+    }
+  }
+
+  // unknown hash → default to all
+  currentCategory = "all";
+  categoriesButton.textContent = "Category ▼";
+  updateTopButtons();
+  renderBooks();
+}
+
+window.addEventListener("hashchange", applyHashFromLocation);
 
 /* ============================================================
    INIT
