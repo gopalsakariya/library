@@ -1,5 +1,5 @@
 /* ============================================================
-   0. CONFIG – BACK TO OPENSHEET
+   0. CONFIG – OPEN SHEET
 ============================================================ */
 
 const SHEET_ID = "18X4dQ4J7RyZDvb6XJdZ-jDdzcYg8OUboOrPEw5R3OUA";
@@ -50,6 +50,7 @@ const bookModalClose = bookModal.querySelector(".modal-close");
 const bookModalBody = bookModal.querySelector(".modal-body");
 
 const themeToggle = document.getElementById("themeToggle");
+const mobileBottomNav = document.getElementById("mobileBottomNav");
 
 /* ============================================================
    2. THEME TOGGLE (Dark / Light)
@@ -107,7 +108,6 @@ function highlight(text) {
   );
 }
 
-/* Soft scoring for relevance */
 function levenshtein(a, b) {
   a = normalize(a);
   b = normalize(b);
@@ -153,9 +153,9 @@ function getMatchScore(text, query) {
 ============================================================ */
 
 function mapRowToBook(row) {
-  // OpenSheet gives keys exactly as your header; we assume lower-case
   const title = (row.title || "").trim();
   const author = (row.author || "").trim();
+
   let category = (row.category || "Other").trim();
   if (category) {
     category =
@@ -167,7 +167,6 @@ function mapRowToBook(row) {
   const description = (row.description || "").trim();
   const details = (row.details || "").trim();
 
-  // This is your "PDF, 10 MB, 150 Pages" style string
   const rawTags = (row.tags || "").trim();
 
   let tags = [];
@@ -207,7 +206,7 @@ function mapRowToBook(row) {
     });
   }
 
-  // *** IMPORTANT: PDF URL COMES ONLY FROM PDF COLUMNS ***
+  // IMPORTANT: PDF URL ONLY FROM PDF COLUMNS → NOT TAGS
   const pdfUrl = (
     row.pdfurl ||
     row.pdf ||
@@ -296,9 +295,19 @@ function changeCategory(cat) {
   searchInput.value = "";
   updateCategoryActive();
   renderBooks();
+
+  // simple hash for category/bookmarks/home
+  if (cat === "all") {
+    location.hash = "#home";
+  } else if (cat === "bookmarked") {
+    location.hash = "#bookmarks";
+  } else {
+    location.hash = "#category";
+  }
 }
 
 function updateCategoryActive() {
+  if (!categoriesLeft) return;
   const btns = categoriesLeft.querySelectorAll(".category-btn");
   btns.forEach((btn) => {
     const c = btn.dataset.category || "all";
@@ -318,11 +327,16 @@ function updateFiltersButtonActive() {
 }
 
 function openFiltersModal() {
+  if (!filtersModal) return;
   filtersModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
+
+  // hash for filters popup
+  location.hash = "#filters";
 }
 
 function closeFiltersModal() {
+  if (!filtersModal) return;
   filtersModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
@@ -370,6 +384,7 @@ if (clearFiltersButton) {
     updateFiltersButtonActive();
     renderBooks();
     closeFiltersModal();
+    location.hash = "#home";
   });
 }
 
@@ -387,13 +402,13 @@ if (filtersModal) {
 }
 
 /* ============================================================
-   8. SORT DROPDOWN (ONLY CHANGE RELATED TO SORTING)
+   8. SORT DROPDOWN (ONLY SORTING)
 ============================================================ */
 
 function initSortDropdown() {
   if (!sortInlineButton) return;
 
-  // Wrap button in a .sort-wrapper to match CSS
+  // wrap button in .sort-wrapper to match CSS
   const wrapper = document.createElement("div");
   wrapper.className = "sort-wrapper";
 
@@ -427,6 +442,12 @@ function initSortDropdown() {
       updateSortActive();
       sortMenu.classList.remove("open");
       renderBooks();
+      // hash for sort view
+      if (currentSort === "relevance") {
+        location.hash = "#home";
+      } else {
+        location.hash = "#sort";
+      }
     });
     sortMenu.appendChild(btn);
   });
@@ -437,7 +458,7 @@ function initSortDropdown() {
   });
 
   document.addEventListener("click", () => {
-    sortMenu.classList.remove("open");
+    if (sortMenu) sortMenu.classList.remove("open");
   });
 
   updateSortActive();
@@ -502,7 +523,7 @@ function passesPagesFilter(book) {
 }
 
 /* ============================================================
-   10. SEARCH / FILTER / SORT / VIEW PIPELINE
+   10. FILTER + SORT + SEARCH PIPELINE
 ============================================================ */
 
 function getFilteredAndSortedBooks() {
@@ -510,7 +531,6 @@ function getFilteredAndSortedBooks() {
 
   let items = books
     .map((book) => {
-      // Category
       if (currentCategory === "bookmarked" && !bookmarks.includes(book.title)) {
         return { book, score: -1 };
       }
@@ -522,7 +542,6 @@ function getFilteredAndSortedBooks() {
         return { book, score: -1 };
       }
 
-      // size & pages
       if (!passesSizeFilter(book)) return { book, score: -1 };
       if (!passesPagesFilter(book)) return { book, score: -1 };
 
@@ -541,7 +560,6 @@ function getFilteredAndSortedBooks() {
     })
     .filter((x) => x.score > 0 || (!q && x.score === 1));
 
-  // sorting
   if (currentSort === "title") {
     items.sort((a, b) => a.book.title.localeCompare(b.book.title));
   } else if (currentSort === "author") {
@@ -585,7 +603,6 @@ function getFilteredAndSortedBooks() {
       return pb - pa;
     });
   } else {
-    // relevance
     items.sort(
       (a, b) => b.score - a.score || a.book.title.localeCompare(b.book.title)
     );
@@ -663,7 +680,6 @@ function renderBooks() {
       toggleBookmark(book.title);
     });
 
-    // NOTE: cover click does NOT open PDF – only opens popup
     card.addEventListener("click", () => {
       openBookModal(book);
     });
@@ -687,7 +703,26 @@ function toggleBookmark(title) {
 }
 
 /* ============================================================
-   13. BOOK MODAL (uses correct fields, correct PDF URL)
+   13. POPUP HELPERS
+============================================================ */
+
+function isAnyPopupOpen() {
+  const filtersOpen = filtersModal && !filtersModal.classList.contains("hidden");
+  const bookOpen = bookModal && !bookModal.classList.contains("hidden");
+  return filtersOpen || bookOpen;
+}
+
+function closeAllPopups() {
+  if (filtersModal && !filtersModal.classList.contains("hidden")) {
+    closeFiltersModal();
+  }
+  if (bookModal && !bookModal.classList.contains("hidden")) {
+    closeBookModal();
+  }
+}
+
+/* ============================================================
+   14. BOOK MODAL (correct PDF + no image click to PDF)
 ============================================================ */
 
 function openBookModal(book) {
@@ -758,6 +793,9 @@ function openBookModal(book) {
   bookModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
 
+  // simple hash for book popup
+  location.hash = "#book";
+
   const bookmarkToggleBtn = bookModalBody.querySelector("#bookmarkToggleBtn");
   if (bookmarkToggleBtn) {
     bookmarkToggleBtn.addEventListener("click", () => {
@@ -770,10 +808,11 @@ function openBookModal(book) {
     });
   }
 
-  // NO click on image → PDF here (removed on purpose)
+  // NOTE: cover image NOT clickable to PDF
 }
 
 function closeBookModal() {
+  if (!bookModal) return;
   bookModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
@@ -782,13 +821,13 @@ bookModalClose.addEventListener("click", closeBookModal);
 bookModalOverlay.addEventListener("click", closeBookModal);
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && !bookModal.classList.contains("hidden")) {
-    closeBookModal();
+  if (e.key === "Escape" && isAnyPopupOpen()) {
+    closeAllPopups();
   }
 });
 
 /* ============================================================
-   14. VIEW SWITCH (Grid / List)
+   15. VIEW SWITCH (Grid / List)
 ============================================================ */
 
 viewButtons.forEach((btn) => {
@@ -802,29 +841,138 @@ viewButtons.forEach((btn) => {
 });
 
 /* ============================================================
-   15. SEARCH
+   16. SEARCH
 ============================================================ */
 
 searchButton.addEventListener("click", () => {
   currentSearch = searchInput.value.trim();
   renderBooks();
+  if (currentSearch) {
+    location.hash = "#search";
+  } else {
+    location.hash = "#home";
+  }
 });
 
 clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   renderBooks();
+  location.hash = "#home";
 });
 
 searchInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     currentSearch = searchInput.value.trim();
     renderBooks();
+    if (currentSearch) {
+      location.hash = "#search";
+    } else {
+      location.hash = "#home";
+    }
   }
 });
 
 /* ============================================================
-   16. INIT
+   17. MOBILE BOTTOM NAV (Android)
+============================================================ */
+
+if (mobileBottomNav) {
+  mobileBottomNav.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-nav]");
+    if (!btn) return;
+    const nav = btn.dataset.nav;
+
+    if (nav === "home") {
+      resetToHomeView();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (nav === "bookmarks") {
+      changeCategory("bookmarked");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (nav === "categories") {
+      document
+        .getElementById("categories")
+        .scrollIntoView({ behavior: "smooth" });
+      location.hash = "#categories";
+    } else if (nav === "search") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      searchInput.focus();
+      location.hash = "#search";
+    }
+  });
+}
+
+/* ============================================================
+   18. BACK BUTTON LOGIC
+============================================================ */
+
+/*
+  Behavior:
+  - If any popup is open -> back closes popup.
+  - Else if user is NOT on home (category != all OR search OR filters OR sort) -> back resets to home.
+  - Else -> stays on home (user can close tab/app to exit).
+*/
+
+function isHomeState() {
+  return (
+    currentCategory === "all" &&
+    !currentSearch &&
+    currentSizeFilter === "any" &&
+    currentPagesFilter === "any" &&
+    currentSort === "relevance"
+  );
+}
+
+function resetToHomeView() {
+  currentCategory = "all";
+  currentSearch = "";
+  searchInput.value = "";
+  currentSizeFilter = "any";
+  currentPagesFilter = "any";
+  currentSort = "relevance";
+
+  if (sizeFilterSelect) {
+    sizeFilterSelect.value = "any";
+    sizeFilterSelect.classList.remove("active-filter");
+  }
+  if (pagesFilterSelect) {
+    pagesFilterSelect.value = "any";
+    pagesFilterSelect.classList.remove("active-filter");
+  }
+
+  updateFiltersButtonActive();
+  updateSortActive();
+  updateCategoryActive();
+  renderBooks();
+  location.hash = "#home";
+}
+
+function handleBackButton(event) {
+  // 1. close popups first
+  if (isAnyPopupOpen()) {
+    closeAllPopups();
+    location.hash = "#home";
+    return;
+  }
+
+  // 2. if not home, go home
+  if (!isHomeState()) {
+    resetToHomeView();
+    return;
+  }
+
+  // 3. already home and no popup -> do nothing special.
+}
+
+// Hook into history for Android/browser back
+if (window.history && window.history.pushState) {
+  // seed initial state
+  history.replaceState({ app: true, view: "home" }, "", "#home");
+  window.addEventListener("popstate", handleBackButton);
+}
+
+/* ============================================================
+   19. INIT
 ============================================================ */
 
 loadBooksFromSheet();
