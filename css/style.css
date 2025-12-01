@@ -273,15 +273,29 @@ body.light .top-cat-btn {
 }
 
 /* Active background + border (both themes) */
-/* Active (All / ★ / Category) – same as Get PDF button */
-.top-cat-btn.active,
-#categoriesButton.active {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border-color: var(--accent-blue);
-  color: #f9fafb !important;   /* white text/icon so star and label are visible */
-  box-shadow: 0 0 16px rgba(59, 130, 246, 0.9);
+.top-cat-btn.active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.85);
 }
 
+/* Active text color in dark mode */
+body.dark .top-cat-btn.active {
+  color: #f9fafb !important;  /* white on dark gradient */
+}
+
+/* Active text/icon color in light mode */
+body.light .top-cat-btn.active {
+  color: #020617 !important;  /* dark text so star is visible */
+}
+
+
+/* Category button special active */
+#categoriesButton.active {
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+  border-color: var(--accent-green);
+  color: #020617 !important;
+}
 
 /* Filters button */
 #filtersButton {
@@ -435,14 +449,11 @@ body.light .view-btn {
   transform: translateY(-1px);
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.9);
 }
-/* Active view buttons (grid/list) – same as Get PDF */
 .view-btn.active {
-  background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-  border-color: var(--accent-blue);
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  border-color: var(--accent-cyan);
   color: #f9fafb;
-  box-shadow: 0 0 14px rgba(59, 130, 246, 0.9);
 }
-
 
 /* ============================================================
    BOOK GRID
