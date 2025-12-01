@@ -498,7 +498,9 @@ function openBookPopup(b) {
 
   // update hash for shareable URL
   if (b.pdfUrl) {
-    setHash("#book=" + encodeURIComponent(b.pdfUrl));
+const fileName = b.pdfUrl.split("/").pop();
+setHash("#book=" + encodeURIComponent(fileName));
+
   }
 
   document
@@ -624,8 +626,11 @@ function applyHashFromLocation() {
   }
 
   if (hash.startsWith("book=")) {
-    const pdf = decodeURIComponent(hash.slice("book=".length));
-    const book = books.find((b) => b.pdfUrl === pdf);
+  const fileName = decodeURIComponent(hash.slice("book=".length));
+
+  // find book by matching filename only
+  const book = books.find((b) => b.pdfUrl.split("/").pop() === fileName);
+
     if (book) {
       renderBooks();
       openBookPopup(book);
