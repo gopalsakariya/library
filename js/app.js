@@ -488,11 +488,7 @@ function openBookPopup(b) {
         : ""
     }
 
-    <div class="modal-section">
-      <h4>File Info</h4>
-      <p>Size: ${b.sizeMB || "?"} MB</p>
-      <p>Pages: ${b.pages || "?"}</p>
-    </div>
+   
 
     <div class="modal-actions">
       <a class="modal-btn" href="${b.pdfUrl}" target="_blank">
