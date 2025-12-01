@@ -1029,47 +1029,55 @@ body.light footer {
 /* ============================================================
    TOP BUTTONS (All / Bookmarked / Category)
 ============================================================ */
+/* ============================================================
+   TOP BUTTONS (All / ★ / Category)
+============================================================ */
 .top-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  min-width: 70px;
+
   border-radius: 999px;
   border: 1px solid #1f2937;
   padding: 0.38rem 1rem;
   font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
   transition: 150ms ease;
-  font-weight: 500;
 }
 
-/* Dark mode */
+/* Dark mode text clearly visible */
 body.dark .top-cat-btn {
   background: radial-gradient(circle at top, #020617, #020617);
-  color: var(--text-main-dark);
+  color: #e5e7eb; /* force visible text */
 }
 
 /* Light mode */
 body.light .top-cat-btn {
   background: #ffffff;
-  color: var(--text-main-light);
+  color: #111827;
   border-color: var(--border-subtle-light);
 }
 
-/* Hover effect */
 .top-cat-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
   border-color: var(--accent-cyan);
 }
 
-/* Active (selected) button */
+/* Active state */
 .top-cat-btn.active {
   background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
   color: #f9fafb !important;
   border-color: var(--accent-cyan);
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.85);
 }
-/* Highlight active category only (not "Category ▼") */
+
+/* Special tune for the category button when active */
 #categoriesButton.active {
   background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
   border-color: var(--accent-green);
   color: #020617 !important;
 }
-
