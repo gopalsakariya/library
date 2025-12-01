@@ -1026,3 +1026,44 @@ body.dark footer {
 body.light footer {
   color: var(--text-muted-light);
 }
+/* ============================================================
+   TOP BUTTONS (All / Bookmarked / Category)
+============================================================ */
+.top-cat-btn {
+  border-radius: 999px;
+  border: 1px solid #1f2937;
+  padding: 0.38rem 1rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: 150ms ease;
+  font-weight: 500;
+}
+
+/* Dark mode */
+body.dark .top-cat-btn {
+  background: radial-gradient(circle at top, #020617, #020617);
+  color: var(--text-main-dark);
+}
+
+/* Light mode */
+body.light .top-cat-btn {
+  background: #ffffff;
+  color: var(--text-main-light);
+  border-color: var(--border-subtle-light);
+}
+
+/* Hover effect */
+.top-cat-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+  border-color: var(--accent-cyan);
+}
+
+/* Active (selected) button */
+.top-cat-btn.active {
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+  color: #f9fafb !important;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.85);
+}
+
