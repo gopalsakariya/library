@@ -799,53 +799,6 @@ body.light .tag-chip {
   box-shadow: 0 0 14px rgba(96, 165, 250, 0.95);
 }
 
-/* Filters modal */
-#filtersModal .modal-dialog {
-  max-width: 520px;
-}
-.filters-group {
-  margin-top: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-.filters-group label {
-  font-size: 0.78rem;
-}
-body.dark .filters-group label {
-  color: var(--text-muted-dark);
-}
-body.light .filters-group label {
-  color: var(--text-muted-light);
-}
-.filters-select {
-  border-radius: 999px;
-  border: 1px solid #1f2937;
-  padding: 0.4rem 0.7rem;
-  font-size: 0.8rem;
-  cursor: pointer;
-  transition: box-shadow 120ms ease, transform 120ms ease, border-color 120ms ease,
-    background 120ms ease, color 120ms ease;
-}
-body.dark .filters-select {
-  background: radial-gradient(circle at top, #020617, #020617);
-  color: var(--text-main-dark);
-}
-body.light .filters-select {
-  background: #ffffff;
-  color: var(--text-main-light);
-  border-color: var(--border-subtle-light);
-}
-.filters-select:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 0 12px rgba(129, 140, 248, 0.95);
-}
-.filters-actions {
-  margin-top: 0.9rem;
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
 .pill-button {
   border-radius: 999px;
   border: 1px solid #1f2937;
