@@ -14,8 +14,6 @@ let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 let currentCategory = "all";
 let currentSearch = "";
 let currentSort = "relevance";
-let currentSizeFilter = "any";
-let currentPagesFilter = "any";
 let currentView = "grid";
 
 /* ============================================================
@@ -46,13 +44,6 @@ const searchPopupButton = document.getElementById("searchPopupButton");
 const searchModalClose = searchModal.querySelector(".modal-close");
 const searchModalOverlay = searchModal.querySelector(".modal-overlay");
 
-/* FILTER POPUP */
-const filtersModal = document.getElementById("filtersModal");
-const filtersButton = document.getElementById("filtersButton");
-const applyFiltersButton = document.getElementById("applyFiltersButton");
-const clearFiltersButton = document.getElementById("clearFiltersButton");
-const sizeFilterSelect = document.getElementById("sizeFilter");
-const pagesFilterSelect = document.getElementById("pagesFilter");
 
 /* SORTING */
 const sortInlineButton = document.getElementById("sortInlineButton");
@@ -281,33 +272,6 @@ searchPopupButton.addEventListener("click", () => {
 /* ============================================================
    FILTER POPUP
 ============================================================ */
-filtersButton.addEventListener("click", () => {
-  filtersModal.classList.remove("hidden");
-  document.body.classList.add("popup-open");
-});
-
-filtersModal.querySelector(".modal-close").addEventListener("click", () => {
-  filtersModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-});
-filtersModal.querySelector(".modal-overlay").addEventListener("click", () => {
-  filtersModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-});
-
-applyFiltersButton.addEventListener("click", () => {
-  filtersModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-  renderBooks();
-});
-
-clearFiltersButton.addEventListener("click", () => {
-  currentSizeFilter = "any";
-  currentPagesFilter = "any";
-  sizeFilterSelect.value = "any";
-  pagesFilterSelect.value = "any";
-  renderBooks();
-});
 
 /* ============================================================
    SORT MENU
@@ -365,46 +329,6 @@ function updateSortActive() {
   });
 }
 
-/* ============================================================
-   FILTER + SORT WORK
-============================================================ */
-function passSize(b) {
-  if (!b.sizeMB && currentSizeFilter !== "any") return false;
-  switch (currentSizeFilter) {
-    case "lt1":
-      return b.sizeMB < 1;
-    case "1to100":
-      return b.sizeMB >= 1 && b.sizeMB <= 100;
-    case "100to200":
-      return b.sizeMB >= 100 && b.sizeMB <= 200;
-    case "200to500":
-      return b.sizeMB >= 200 && b.sizeMB <= 500;
-    case "500to1000":
-      return b.sizeMB >= 500 && b.sizeMB <= 1000;
-    case "gt1000":
-      return b.sizeMB > 1000;
-  }
-  return true;
-}
-
-function passPages(b) {
-  if (!b.pages && currentPagesFilter !== "any") return false;
-  switch (currentPagesFilter) {
-    case "lt100":
-      return b.pages < 100;
-    case "100to200":
-      return b.pages >= 100 && b.pages <= 200;
-    case "200to500":
-      return b.pages >= 200 && b.pages <= 500;
-    case "500to1000":
-      return b.pages >= 500 && b.pages <= 1000;
-    case "1000to2000":
-      return b.pages >= 1000 && b.pages <= 2000;
-    case "gt2000":
-      return b.pages > 2000;
-  }
-  return true;
-}
 
 /* ============================================================
    GET FILTERED BOOKS
@@ -417,8 +341,6 @@ function getFilteredBooks() {
       if (norm(b.category) !== norm(currentCategory)) return false;
     }
 
-    if (!passSize(b)) return false;
-    if (!passPages(b)) return false;
 
     if (currentSearch) {
       const text =
