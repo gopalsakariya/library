@@ -1066,4 +1066,10 @@ body.light .top-cat-btn {
   border-color: var(--accent-cyan);
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.85);
 }
+/* Highlight active category only (not "Category ▼") */
+#categoriesButton.active {
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+  border-color: var(--accent-green);
+  color: #020617 !important;
+}
 
