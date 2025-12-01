@@ -250,11 +250,9 @@ function updateTopButtons() {
     categoriesButton.textContent = "Category ▼";
   } else {
     categoriesButton.classList.add("active");
-    // make sure text is the current category name
     categoriesButton.textContent = currentCategory;
   }
 }
-
 
 /* ============================================================
    SEARCH POPUP
@@ -683,7 +681,6 @@ function applyHashFromLocation() {
     currentCategory = "all";
     currentSearch = "";
     searchInput.value = "";
-    categoriesButton.textContent = "Category ▼";
     updateTopButtons();
     renderBooks();
     return;
@@ -691,7 +688,6 @@ function applyHashFromLocation() {
 
   if (hash === "bookmarks") {
     currentCategory = "bookmarked";
-    categoriesButton.textContent = "Category ▼";
     updateTopButtons();
     renderBooks();
     return;
@@ -700,7 +696,6 @@ function applyHashFromLocation() {
   if (hash.startsWith("category=")) {
     const cat = decodeURIComponent(hash.slice("category=".length));
     currentCategory = formatCategoryName(cat);
-    categoriesButton.textContent = currentCategory;
     updateTopButtons();
     renderBooks();
     return;
@@ -710,14 +705,11 @@ function applyHashFromLocation() {
     const pdf = decodeURIComponent(hash.slice("book=".length));
     const book = books.find((b) => b.pdfUrl === pdf);
     if (book) {
-      // keep existing category / search, just open popup
       renderBooks();
       openBookPopup(book);
       return;
     } else {
-      // fallback to all
       currentCategory = "all";
-      categoriesButton.textContent = "Category ▼";
       updateTopButtons();
       renderBooks();
       return;
@@ -726,7 +718,6 @@ function applyHashFromLocation() {
 
   // unknown hash → default to all
   currentCategory = "all";
-  categoriesButton.textContent = "Category ▼";
   updateTopButtons();
   renderBooks();
 }
