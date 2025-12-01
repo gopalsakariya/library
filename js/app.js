@@ -244,12 +244,17 @@ function updateTopButtons() {
 
   if (currentCategory === "all") {
     btnAll.classList.add("active");
+    categoriesButton.textContent = "Category ▼";
   } else if (currentCategory === "bookmarked") {
     btnBookmarked.classList.add("active");
+    categoriesButton.textContent = "Category ▼";
   } else {
     categoriesButton.classList.add("active");
+    // make sure text is the current category name
+    categoriesButton.textContent = currentCategory;
   }
 }
+
 
 /* ============================================================
    SEARCH POPUP
