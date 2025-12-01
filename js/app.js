@@ -21,25 +21,6 @@ let currentView = "grid";
 /* ============================================================
    DOM ELEMENTS
 ============================================================ */
-const categoriesBtn = document.getElementById("categoriesButton");
-const categoriesModal = document.getElementById("categoriesModal");
-const categoriesModalBody = document.getElementById("categoriesModalBody");
-const categoriesClose = document.querySelector("#categoriesModal .modal-close");
-const categoriesOverlay = document.querySelector("#categoriesModal .modal-overlay");
-
-const searchModal = document.getElementById("searchModal");
-const searchModalClose = document.querySelector("#searchModal .modal-close");
-const searchModalOverlay = document.querySelector("#searchModal .modal-overlay");
-
-const filtersModal = document.getElementById("filtersModal");
-const filtersButton = document.getElementById("filtersButton");
-const applyFiltersButton = document.getElementById("applyFiltersButton");
-const clearFiltersButton = document.getElementById("clearFiltersButton");
-const sizeFilterSelect = document.getElementById("sizeFilter");
-const pagesFilterSelect = document.getElementById("pagesFilter");
-
-const sortInlineButton = document.getElementById("sortInlineButton");
-
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearSearchButton = document.getElementById("clearSearchButton");
@@ -47,20 +28,53 @@ const clearSearchButton = document.getElementById("clearSearchButton");
 const resultsInfo = document.getElementById("resultsInfo");
 const booksContainer = document.getElementById("booksContainer");
 
+/* TOP CATEGORY BUTTONS */
+const btnAll = document.getElementById("btnAll");
+const btnBookmarked = document.getElementById("btnBookmarked");
+const categoriesButton = document.getElementById("categoriesButton");
+
+/* CATEGORY POPUP */
+const categoriesModal = document.getElementById("categoriesModal");
+const categoriesModalBody = document.getElementById("categoriesModalBody");
+const categoriesClose = categoriesModal.querySelector(".modal-close");
+const categoriesOverlay = categoriesModal.querySelector(".modal-overlay");
+
+/* SEARCH POPUP */
+const searchModal = document.getElementById("searchModal");
+const searchPopupInput = document.getElementById("searchPopupInput");
+const searchPopupButton = document.getElementById("searchPopupButton");
+const searchModalClose = searchModal.querySelector(".modal-close");
+const searchModalOverlay = searchModal.querySelector(".modal-overlay");
+
+/* FILTER POPUP */
+const filtersModal = document.getElementById("filtersModal");
+const filtersButton = document.getElementById("filtersButton");
+const applyFiltersButton = document.getElementById("applyFiltersButton");
+const clearFiltersButton = document.getElementById("clearFiltersButton");
+const sizeFilterSelect = document.getElementById("sizeFilter");
+const pagesFilterSelect = document.getElementById("pagesFilter");
+
+/* SORTING */
+const sortInlineButton = document.getElementById("sortInlineButton");
+let sortMenu = null;
+
+/* VIEW SWITCH */
+const viewButtons = document.querySelectorAll(".view-btn");
+
+/* BOOK POPUP */
 const bookModal = document.getElementById("bookModal");
 const bookModalBody = bookModal.querySelector(".modal-body");
 const bookModalClose = bookModal.querySelector(".modal-close");
 const bookModalOverlay = bookModal.querySelector(".modal-overlay");
 
+/* MOBILE NAV */
 const mobileBottomNav = document.getElementById("mobileBottomNav");
-const viewButtons = document.querySelectorAll(".view-btn");
 
+/* THEME */
 const themeToggle = document.getElementById("themeToggle");
 
-let sortMenu = null;
-
 /* ============================================================
-   THEME (LIGHT / DARK)
+   THEME LOGIC
 ============================================================ */
 function applyTheme(mode) {
   document.body.classList.remove("dark", "light");
@@ -94,7 +108,7 @@ function highlight(text) {
   return text.replace(new RegExp(q, "gi"), (m) => `<mark>${m}</mark>`);
 }
 
-function getCoverPath(x) {
+function getCover(x) {
   return x ? x : "img/book.jpg";
 }
 
@@ -109,12 +123,10 @@ function mapBook(row) {
   b.category = row.category?.trim() || "Other";
   b.description = row.description?.trim() || "";
   b.details = row.details?.trim() || "";
-  b.cover = getCoverPath(row.cover);
+  b.cover = getCover(row.cover);
 
-  // IMPORTANT: Real PDF URL from sheet only
   b.pdfUrl = row.pdfurl?.trim() || row.pdf?.trim() || "";
 
-  // Tags parsing
   const rawTags = row.tags?.trim() || "";
   b.tags = rawTags
     ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
@@ -139,11 +151,12 @@ function loadBooks() {
     .then((r) => r.json())
     .then((rows) => {
       books = rows.map(mapBook);
-      renderBooks();
       buildCategoryPopup();
+      renderBooks();
+      updateTopButtons();
     })
     .catch(() => {
-      booksContainer.innerHTML = "<p>Failed to load books.</p>";
+      booksContainer.innerHTML = "<p>Error loading data</p>";
     });
 }
 
@@ -160,25 +173,19 @@ function buildCategoryPopup() {
   const categories = getCategories();
 
   categoriesModalBody.innerHTML = categories
-    .map(
-      (c) => `
-      <button class="cat-chip" data-cat="${c}">
-        ${c}
-      </button>
-    `
-    )
+    .map((c) => `<button class="cat-chip" data-cat="${c}">${c}</button>`)
     .join("");
 
   categoriesModalBody.querySelectorAll(".cat-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentCategory = btn.dataset.cat;
-      categoriesBtn.textContent =
+      categoriesButton.textContent =
         currentCategory === "all"
-          ? "Categories"
+          ? "Category ▼"
           : `Category: ${currentCategory}`;
-
-      renderBooks();
       closeCategoriesPopup();
+      updateTopButtons();
+      renderBooks();
     });
   });
 }
@@ -192,24 +199,59 @@ function closeCategoriesPopup() {
   document.body.classList.remove("popup-open");
 }
 
-categoriesBtn.addEventListener("click", openCategoriesPopup);
+categoriesButton.addEventListener("click", openCategoriesPopup);
 categoriesClose.addEventListener("click", closeCategoriesPopup);
 categoriesOverlay.addEventListener("click", closeCategoriesPopup);
 
 /* ============================================================
-   SEARCH POPUP (mobile search button)
+   TOP BUTTONS LOGIC
+============================================================ */
+btnAll.addEventListener("click", () => {
+  currentCategory = "all";
+  currentSearch = "";
+  searchInput.value = "";
+  updateTopButtons();
+  renderBooks();
+});
+
+btnBookmarked.addEventListener("click", () => {
+  currentCategory = "bookmarked";
+  updateTopButtons();
+  renderBooks();
+});
+
+function updateTopButtons() {
+  btnAll.classList.remove("active");
+  btnBookmarked.classList.remove("active");
+  categoriesButton.classList.remove("active");
+
+  if (currentCategory === "all") btnAll.classList.add("active");
+  else if (currentCategory === "bookmarked") btnBookmarked.classList.add("active");
+  else categoriesButton.classList.add("active");
+}
+
+/* ============================================================
+   SEARCH POPUP
 ============================================================ */
 function openSearchPopup() {
   searchModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
-  document.getElementById("searchPopupInput").focus();
+  searchPopupInput.focus();
 }
+
 function closeSearchPopup() {
   searchModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
+
 searchModalClose.addEventListener("click", closeSearchPopup);
 searchModalOverlay.addEventListener("click", closeSearchPopup);
+
+searchPopupButton.addEventListener("click", () => {
+  currentSearch = searchPopupInput.value.trim();
+  closeSearchPopup();
+  renderBooks();
+});
 
 /* ============================================================
    FILTER POPUP
@@ -218,18 +260,15 @@ filtersButton.addEventListener("click", () => {
   filtersModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
 });
-document
-  .querySelector("#filtersModal .modal-close")
-  .addEventListener("click", () => {
-    filtersModal.classList.add("hidden");
-    document.body.classList.remove("popup-open");
-  });
-document
-  .querySelector("#filtersModal .modal-overlay")
-  .addEventListener("click", () => {
-    filtersModal.classList.add("hidden");
-    document.body.classList.remove("popup-open");
-  });
+
+filtersModal.querySelector(".modal-close").addEventListener("click", () => {
+  filtersModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
+});
+filtersModal.querySelector(".modal-overlay").addEventListener("click", () => {
+  filtersModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
+});
 
 applyFiltersButton.addEventListener("click", () => {
   filtersModal.classList.add("hidden");
@@ -246,42 +285,40 @@ clearFiltersButton.addEventListener("click", () => {
 });
 
 /* ============================================================
-   SORT DROPDOWN
+   SORT MENU
 ============================================================ */
 function initSortMenu() {
   const wrapper = document.createElement("div");
   wrapper.className = "sort-wrapper";
-  sortInlineButton.parentElement.insertBefore(wrapper, sortInlineButton);
+  sortInlineButton.parentNode.insertBefore(wrapper, sortInlineButton);
   wrapper.appendChild(sortInlineButton);
 
   sortMenu = document.createElement("div");
   sortMenu.className = "sort-menu";
   wrapper.appendChild(sortMenu);
 
-  const allSortOptions = [
+  const opts = [
     ["relevance", "Relevance"],
-    ["title", "Title A–Z"],
-    ["author", "Author A–Z"],
-    ["category", "Category A–Z"],
+    ["title", "Title (A–Z)"],
+    ["author", "Author (A–Z)"],
+    ["category", "Category (A–Z)"],
     ["sizeAsc", "Size ↑"],
     ["sizeDesc", "Size ↓"],
     ["pagesAsc", "Pages ↑"],
     ["pagesDesc", "Pages ↓"]
   ];
 
-  allSortOptions.forEach(([v, label]) => {
+  opts.forEach(([v, label]) => {
     const b = document.createElement("button");
     b.className = "sort-option";
     b.dataset.sort = v;
     b.textContent = label;
-
     b.addEventListener("click", () => {
       currentSort = v;
-      updateSortActive();
       sortMenu.classList.remove("open");
+      updateSortActive();
       renderBooks();
     });
-
     sortMenu.appendChild(b);
   });
 
@@ -290,10 +327,7 @@ function initSortMenu() {
     sortMenu.classList.toggle("open");
   });
 
-  document.addEventListener("click", () => {
-    sortMenu.classList.remove("open");
-  });
-
+  document.addEventListener("click", () => sortMenu.classList.remove("open"));
   updateSortActive();
 }
 
@@ -301,15 +335,13 @@ function updateSortActive() {
   sortInlineButton.classList.toggle("active", currentSort !== "relevance");
 
   if (!sortMenu) return;
-  sortMenu
-    .querySelectorAll(".sort-option")
-    .forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.sort === currentSort)
-    );
+  sortMenu.querySelectorAll(".sort-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.sort === currentSort);
+  });
 }
 
 /* ============================================================
-   FILTERING LOGIC
+   FILTER + SORT WORK
 ============================================================ */
 function passSize(b) {
   if (!b.sizeMB && currentSizeFilter !== "any") return false;
@@ -350,7 +382,7 @@ function passPages(b) {
 }
 
 /* ============================================================
-   SORT + FILTER + SEARCH PIPELINE
+   GET FILTERED BOOKS
 ============================================================ */
 function getFilteredBooks() {
   let arr = books.filter((b) => {
@@ -364,7 +396,7 @@ function getFilteredBooks() {
     if (!passPages(b)) return false;
 
     if (currentSearch) {
-      const t =
+      const text =
         b.title +
         " " +
         b.author +
@@ -374,8 +406,7 @@ function getFilteredBooks() {
         b.description +
         " " +
         b.tags.join(" ");
-
-      if (!norm(t).includes(norm(currentSearch))) return false;
+      if (!norm(text).includes(norm(currentSearch))) return false;
     }
 
     return true;
@@ -409,7 +440,7 @@ function getFilteredBooks() {
 }
 
 /* ============================================================
-   RENDERING BOOK CARDS
+   RENDER BOOK CARDS
 ============================================================ */
 function renderBooks() {
   const arr = getFilteredBooks();
@@ -463,6 +494,19 @@ function renderBooks() {
 }
 
 /* ============================================================
+   BOOKMARKS
+============================================================ */
+function toggleBookmark(title) {
+  if (bookmarks.includes(title)) {
+    bookmarks = bookmarks.filter((t) => t !== title);
+  } else {
+    bookmarks.push(title);
+  }
+  localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+  renderBooks();
+}
+
+/* ============================================================
    BOOK POPUP
 ============================================================ */
 function openBookPopup(b) {
@@ -473,7 +517,7 @@ function openBookPopup(b) {
 
   bookModalBody.innerHTML = `
     <div class="modal-book-header">
-      <img class="modal-cover" src="${b.cover}" />
+      <img class="modal-cover" src="${b.cover}" onerror="this.src='img/book.jpg'">
       <div class="modal-book-main">
         <h3>${b.title}</h3>
         <p class="modal-author-category">
@@ -488,10 +532,8 @@ function openBookPopup(b) {
         : ""
     }
 
-   
-
     <div class="modal-actions">
-      <a class="modal-btn" href="${b.pdfUrl}" target="_blank">
+      <a href="${b.pdfUrl}" target="_blank" class="modal-btn">
         <i class="fa-solid fa-file-pdf"></i> Get PDF
       </a>
       <button id="popupBookmark" class="modal-btn">
@@ -509,7 +551,7 @@ function openBookPopup(b) {
 
   document
     .getElementById("popupBookmark")
-    .addEventListener("click", (e) => {
+    .addEventListener("click", () => {
       toggleBookmark(b.title);
       openBookPopup(b);
     });
@@ -522,19 +564,6 @@ function closeBookPopup() {
 
 bookModalClose.addEventListener("click", closeBookPopup);
 bookModalOverlay.addEventListener("click", closeBookPopup);
-
-/* ============================================================
-   BOOKMARK TOGGLE
-============================================================ */
-function toggleBookmark(title) {
-  if (bookmarks.includes(title)) {
-    bookmarks = bookmarks.filter((t) => t !== title);
-  } else {
-    bookmarks.push(title);
-  }
-  localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
-  renderBooks();
-}
 
 /* ============================================================
    VIEW SWITCH
@@ -555,11 +584,13 @@ searchButton.addEventListener("click", () => {
   currentSearch = searchInput.value.trim();
   renderBooks();
 });
+
 clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   renderBooks();
 });
+
 searchInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     currentSearch = searchInput.value.trim();
@@ -580,11 +611,13 @@ mobileBottomNav.addEventListener("click", (e) => {
     currentCategory = "all";
     currentSearch = "";
     searchInput.value = "";
+    updateTopButtons();
     renderBooks();
   }
 
   if (nav === "bookmarks") {
     currentCategory = "bookmarked";
+    updateTopButtons();
     renderBooks();
   }
 
@@ -600,7 +633,7 @@ mobileBottomNav.addEventListener("click", (e) => {
 /* ============================================================
    BACK BUTTON LOGIC
 ============================================================ */
-function isPopupOpen() {
+function isAnyPopupOpen() {
   return (
     !categoriesModal.classList.contains("hidden") ||
     !filtersModal.classList.contains("hidden") ||
@@ -611,20 +644,15 @@ function isPopupOpen() {
 
 function closeAllPopups() {
   closeCategoriesPopup();
-  closeFiltersModal();
   closeSearchPopup();
   closeBookPopup();
-}
-
-function closeFiltersModal() {
   filtersModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
 
 window.addEventListener("popstate", () => {
-  if (isPopupOpen()) {
+  if (isAnyPopupOpen()) {
     closeAllPopups();
-    return;
   }
 });
 
