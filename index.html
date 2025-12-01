@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Library.TheGopal.com</title>
+  <title>Library – TheGopal.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Font Awesome -->
@@ -14,160 +14,159 @@
   <!-- CSS -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
-<body>
+
+<body class="dark">
 
 <header>
-  <h1>Library.TheGopal.com</h1>
-  <div class="header-right">
-    <!-- (Theme toggle button; currently visual only in this JS version) -->
-    <button id="themeToggle" class="theme-toggle" type="button" title="Toggle theme">
-      <i class="fa-regular fa-moon"></i>
-    </button>
-  </div>
+  <h1>Library</h1>
+  <button id="themeToggle" class="theme-toggle">
+    <i class="fa-regular fa-moon"></i>
+  </button>
 </header>
 
 <main>
 
-  <!-- SEARCH BAR (centered container) -->
-  <section id="search">
+  <!-- SEARCH BAR -->
+  <section id="search" class="page-section">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
-      <button id="searchButton" title="Search">
-        <i class="fa-solid fa-magnifying-glass"></i>
-      </button>
-      <button id="clearSearchButton" title="Clear search">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
+      <button id="searchButton"><i class="fa-solid fa-magnifying-glass"></i></button>
+      <button id="clearSearchButton"><i class="fa-solid fa-xmark"></i></button>
     </div>
-
     <div id="resultsInfo"></div>
   </section>
 
-  <!-- UNIFIED CONTROLS ROW: All / Bookmarked / Categories / Filters / Sort / View -->
-  <section id="categories">
-    <div id="categories-inner">
-      <!-- Left side: All, Bookmarked, dynamic categories (filled by JS) -->
-      <div id="categories-left"></div>
+  <!-- CONTROLS ROW -->
+  <section id="categories" class="page-section">
+    <button id="categoriesButton">Categories</button>
 
-      <!-- Right side: Filters, Sort icon, View toggle -->
-      <div id="categories-right">
-        <!-- Filters opens popup with size + length only -->
-        <button id="filtersButton" class="filters-btn" type="button">
-          <i class="fa-solid fa-sliders"></i>
-          Filters
+    <div style="display:flex;align-items:center;gap:0.4rem; margin-left:auto;">
+      <button id="filtersButton" class="filters-btn">
+        <i class="fa-solid fa-sliders"></i> Filters
+      </button>
+
+      <button id="sortInlineButton">
+        <i class="fa-solid fa-arrow-down-wide-short"></i>
+      </button>
+
+      <div id="viewSwitch">
+        <button class="view-btn active" data-view="grid">
+          <i class="fa-solid fa-border-all"></i>
         </button>
-
-        <!-- Sort icon (dropdown built by JS) -->
-        <button
-          id="sortInlineButton"
-          class="sort-inline-btn"
-          type="button"
-          title="Sort"
-        >
-          <i class="fa-solid fa-arrow-down-wide-short"></i>
+        <button class="view-btn" data-view="list">
+          <i class="fa-solid fa-list"></i>
         </button>
-
-        <!-- View switch (grid / list) -->
-        <div id="viewSwitch">
-          <button class="view-btn active" data-view="grid" title="Grid view">
-            <i class="fa-solid fa-border-all"></i>
-          </button>
-          <button class="view-btn" data-view="list" title="List view">
-            <i class="fa-solid fa-list"></i>
-          </button>
-        </div>
       </div>
     </div>
   </section>
 
-  <!-- BOOKS GRID/LIST (centered) -->
-  <section id="all-books">
-
-    <div id="booksContainer" class="books-grid"></div>
-
-    <!-- BOOK DETAILS MODAL -->
-    <div id="bookModal" class="modal hidden">
-      <div class="modal-overlay"></div>
-      <div class="modal-dialog">
-        <button class="modal-close" type="button" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="modal-body"></div>
-      </div>
-    </div>
-
-    <!-- FILTERS MODAL (size + pages only) -->
-    <div id="filtersModal" class="modal hidden">
-      <div class="modal-overlay"></div>
-      <div class="modal-dialog filters-dialog">
-        <button class="modal-close" type="button" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-        <div class="modal-body">
-          <h3>Filters</h3>
-
-          <div class="filters-group">
-            <label for="sizeFilter">File size</label>
-            <select id="sizeFilter" class="filters-select">
-              <option value="any">Any size</option>
-              <option value="lt1">&lt; 1 MB</option>
-              <option value="1to100">1 - 100 MB</option>
-              <option value="100to200">100 - 200 MB</option>
-              <option value="200to500">200 - 500 MB</option>
-              <option value="500to1000">500 - 1000 MB</option>
-              <option value="gt1000">&gt; 1000 MB</option>
-            </select>
-          </div>
-
-          <div class="filters-group">
-            <label for="pagesFilter">Pages</label>
-            <select id="pagesFilter" class="filters-select">
-              <option value="any">Any length</option>
-              <option value="lt100">&lt; 100 pages</option>
-              <option value="100to200">100 - 200 pages</option>
-              <option value="200to500">200 - 500 pages</option>
-              <option value="500to1000">500 - 1000 pages</option>
-              <option value="1000to2000">1000 - 2000 pages</option>
-              <option value="gt2000">&gt; 2000 pages</option>
-            </select>
-          </div>
-
-          <div class="filters-actions">
-            <button id="clearFiltersButton" class="pill-button" type="button">
-              Clear filters
-            </button>
-            <button id="applyFiltersButton" class="pill-button primary" type="button">
-              Apply
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
+  <!-- BOOKS GRID/LIST -->
+  <section id="all-books" class="page-section">
+    <div id="booksContainer"></div>
   </section>
 
 </main>
 
+<!-- FOOTER -->
 <footer>
-  <p>© 2025 Library of TheGopal.com</p>
+  <p>© 2025 TheGopal.com</p>
 </footer>
 
-<!-- Mobile bottom nav (visual only with this JS version) -->
+<!-- ============================================================
+     CATEGORY POPUP
+============================================================ -->
+<div id="categoriesModal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-dialog">
+    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <h3>Select Category</h3>
+    <div id="categoriesModalBody"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     SEARCH POPUP (MOBILE)
+============================================================ -->
+<div id="searchModal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-dialog">
+    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal-body">
+      <h3>Search</h3>
+      <input id="searchPopupInput" type="text" placeholder="Search books..." />
+      <button id="searchPopupButton" class="modal-btn">
+        <i class="fa-solid fa-magnifying-glass"></i> Search
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     FILTER POPUP
+============================================================ -->
+<div id="filtersModal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-dialog">
+    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+
+    <h3>Filters</h3>
+
+    <div class="filters-group">
+      <label for="sizeFilter">File Size</label>
+      <select id="sizeFilter" class="filters-select">
+        <option value="any">Any size</option>
+        <option value="lt1">&lt;1 MB</option>
+        <option value="1to100">1–100 MB</option>
+        <option value="100to200">100–200 MB</option>
+        <option value="200to500">200–500 MB</option>
+        <option value="500to1000">500–1000 MB</option>
+        <option value="gt1000">Above 1000 MB</option>
+      </select>
+    </div>
+
+    <div class="filters-group">
+      <label for="pagesFilter">Pages</label>
+      <select id="pagesFilter" class="filters-select">
+        <option value="any">Any pages</option>
+        <option value="lt100">&lt;100</option>
+        <option value="100to200">100–200</option>
+        <option value="200to500">200–500</option>
+        <option value="500to1000">500–1000</option>
+        <option value="1000to2000">1000–2000</option>
+        <option value="gt2000">More than 2000</option>
+      </select>
+    </div>
+
+    <div class="filters-actions">
+      <button id="clearFiltersButton" class="pill-button">Clear</button>
+      <button id="applyFiltersButton" class="pill-button primary">Apply</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     BOOK POPUP
+============================================================ -->
+<div id="bookModal" class="modal hidden">
+  <div class="modal-overlay"></div>
+  <div class="modal-dialog">
+    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <div class="modal-body"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     MOBILE BOTTOM NAV
+============================================================ -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
-  <button data-nav="home" title="Home">
-    <i class="fa-solid fa-house nav-icon"></i>
-  </button>
-  <button data-nav="bookmarks" title="Saved">
-    <i class="fa-solid fa-bookmark nav-icon"></i>
-  </button>
-  <button data-nav="categories" title="Categories">
-    <i class="fa-solid fa-layer-group nav-icon"></i>
-  </button>
-  <button data-nav="search" title="Search">
-    <i class="fa-solid fa-magnifying-glass nav-icon"></i>
-  </button>
+  <button data-nav="home"><i class="fa-solid fa-house nav-icon"></i></button>
+  <button data-nav="bookmarks"><i class="fa-solid fa-star nav-icon"></i></button>
+  <button data-nav="categories"><i class="fa-solid fa-layer-group nav-icon"></i></button>
+  <button data-nav="search"><i class="fa-solid fa-magnifying-glass nav-icon"></i></button>
 </nav>
 
+<!-- JS -->
 <script src="js/app.js"></script>
+
 </body>
 </html>
