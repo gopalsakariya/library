@@ -21,13 +21,15 @@ let currentView = "grid";
 /* ============================================================
    DOM ELEMENTS
 ============================================================ */
-const booksContainer = document.getElementById("booksContainer");
-const searchInput = document.getElementById("searchInput");
-const searchButton = document.getElementById("searchButton");
-const clearSearchButton = document.getElementById("clearSearchButton");
+const categoriesBtn = document.getElementById("categoriesButton");
+const categoriesModal = document.getElementById("categoriesModal");
+const categoriesModalBody = document.getElementById("categoriesModalBody");
+const categoriesClose = document.querySelector("#categoriesModal .modal-close");
+const categoriesOverlay = document.querySelector("#categoriesModal .modal-overlay");
 
-const resultsInfo = document.getElementById("resultsInfo");
-const categoriesLeft = document.getElementById("categories-left");
+const searchModal = document.getElementById("searchModal");
+const searchModalClose = document.querySelector("#searchModal .modal-close");
+const searchModalOverlay = document.querySelector("#searchModal .modal-overlay");
 
 const filtersModal = document.getElementById("filtersModal");
 const filtersButton = document.getElementById("filtersButton");
@@ -37,17 +39,47 @@ const sizeFilterSelect = document.getElementById("sizeFilter");
 const pagesFilterSelect = document.getElementById("pagesFilter");
 
 const sortInlineButton = document.getElementById("sortInlineButton");
-const mobileBottomNav = document.getElementById("mobileBottomNav");
 
-const viewSwitch = document.getElementById("viewSwitch");
-const viewButtons = document.querySelectorAll(".view-btn");
+const searchInput = document.getElementById("searchInput");
+const searchButton = document.getElementById("searchButton");
+const clearSearchButton = document.getElementById("clearSearchButton");
+
+const resultsInfo = document.getElementById("resultsInfo");
+const booksContainer = document.getElementById("booksContainer");
 
 const bookModal = document.getElementById("bookModal");
-const bookModalOverlay = bookModal.querySelector(".modal-overlay");
-const bookModalClose = bookModal.querySelector(".modal-close");
 const bookModalBody = bookModal.querySelector(".modal-body");
+const bookModalClose = bookModal.querySelector(".modal-close");
+const bookModalOverlay = bookModal.querySelector(".modal-overlay");
+
+const mobileBottomNav = document.getElementById("mobileBottomNav");
+const viewButtons = document.querySelectorAll(".view-btn");
+
+const themeToggle = document.getElementById("themeToggle");
 
 let sortMenu = null;
+
+/* ============================================================
+   THEME (LIGHT / DARK)
+============================================================ */
+function applyTheme(mode) {
+  document.body.classList.remove("dark", "light");
+  document.body.classList.add(mode);
+
+  themeToggle.innerHTML =
+    mode === "dark"
+      ? '<i class="fa-regular fa-sun"></i>'
+      : '<i class="fa-regular fa-moon"></i>';
+}
+
+let savedTheme = localStorage.getItem("theme") || "dark";
+applyTheme(savedTheme);
+
+themeToggle.addEventListener("click", () => {
+  savedTheme = savedTheme === "dark" ? "light" : "dark";
+  localStorage.setItem("theme", savedTheme);
+  applyTheme(savedTheme);
+});
 
 /* ============================================================
    HELPERS
@@ -58,21 +90,18 @@ function norm(x) {
 
 function highlight(text) {
   if (!currentSearch) return text;
-  const q = currentSearch.trim();
-  if (!q) return text;
-  const re = new RegExp(q, "gi");
-  return text.replace(re, (m) => `<mark>${m}</mark>`);
+  const q = currentSearch;
+  return text.replace(new RegExp(q, "gi"), (m) => `<mark>${m}</mark>`);
 }
 
 function getCoverPath(x) {
-  if (!x) return "img/book.jpg";
-  return x;
+  return x ? x : "img/book.jpg";
 }
 
 /* ============================================================
-   LOAD BOOKS FROM SHEET
+   LOAD BOOKS
 ============================================================ */
-function mapRow(row) {
+function mapBook(row) {
   const b = {};
 
   b.title = row.title?.trim() || "";
@@ -80,26 +109,25 @@ function mapRow(row) {
   b.category = row.category?.trim() || "Other";
   b.description = row.description?.trim() || "";
   b.details = row.details?.trim() || "";
+  b.cover = getCoverPath(row.cover);
 
-  b.cover = getCoverPath(row.cover?.trim());
-
-  // REAL PDF URL ONLY FROM PDF COLUMN
+  // IMPORTANT: Real PDF URL from sheet only
   b.pdfUrl = row.pdfurl?.trim() || row.pdf?.trim() || "";
 
-  // TAGS → used only for tag text, NOT for PDF URL
+  // Tags parsing
   const rawTags = row.tags?.trim() || "";
   b.tags = rawTags
-    ? rawTags.split(",").map((x) => x.trim()).filter(Boolean)
+    ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
-  // DETECT size & pages from tags
   b.sizeMB = null;
   b.pages = null;
-  b.tags.forEach((tag) => {
-    const m1 = tag.toLowerCase().match(/([\d.]+)\s*mb/);
+
+  b.tags.forEach((t) => {
+    let m1 = t.toLowerCase().match(/([\d.]+)\s*mb/);
     if (m1) b.sizeMB = parseFloat(m1[1]);
 
-    const m2 = tag.toLowerCase().match(/(\d+)\s*pages?/);
+    let m2 = t.toLowerCase().match(/(\d+)\s*pages?/);
     if (m2) b.pages = parseInt(m2[1]);
   });
 
@@ -110,76 +138,102 @@ function loadBooks() {
   fetch(SHEET_URL)
     .then((r) => r.json())
     .then((rows) => {
-      books = rows.map(mapRow);
-      renderCategories();
+      books = rows.map(mapBook);
       renderBooks();
+      buildCategoryPopup();
     })
-    .catch((err) => {
-      console.error("Sheet error:", err);
-      booksContainer.innerHTML = "<p>Error loading data</p>";
+    .catch(() => {
+      booksContainer.innerHTML = "<p>Failed to load books.</p>";
     });
 }
 
 /* ============================================================
-   CATEGORY ROW
+   CATEGORY POPUP
 ============================================================ */
 function getCategories() {
-  const set = new Set(["all", "bookmarked"]);
-  books.forEach((b) => set.add(b.category));
-  return [...set];
+  const s = new Set(["all", "bookmarked"]);
+  books.forEach((b) => s.add(b.category));
+  return [...s];
 }
 
-function renderCategories() {
-  categoriesLeft.innerHTML = getCategories()
+function buildCategoryPopup() {
+  const categories = getCategories();
+
+  categoriesModalBody.innerHTML = categories
     .map(
-      (cat) =>
-        `<button class="category-btn" data-category="${cat}">${cat}</button>`
+      (c) => `
+      <button class="cat-chip" data-cat="${c}">
+        ${c}
+      </button>
+    `
     )
     .join("");
 
-  categoriesLeft.querySelectorAll(".category-btn").forEach((btn) => {
+  categoriesModalBody.querySelectorAll(".cat-chip").forEach((btn) => {
     btn.addEventListener("click", () => {
-      changeCategory(btn.dataset.category);
+      currentCategory = btn.dataset.cat;
+      categoriesBtn.textContent =
+        currentCategory === "all"
+          ? "Categories"
+          : `Category: ${currentCategory}`;
+
+      renderBooks();
+      closeCategoriesPopup();
     });
   });
-
-  updateCategoryActive();
 }
 
-function changeCategory(cat) {
-  currentCategory = cat;
-  currentSearch = "";
-  searchInput.value = "";
-
-  updateCategoryActive();
-  renderBooks();
-}
-
-function updateCategoryActive() {
-  categoriesLeft
-    .querySelectorAll(".category-btn")
-    .forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.category === currentCategory)
-    );
-}
-
-/* ============================================================
-   FILTERS (SIZE + PAGES ONLY)
-============================================================ */
-function openFilters() {
-  filtersModal.classList.remove("hidden");
+function openCategoriesPopup() {
+  categoriesModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
 }
-
-function closeFilters() {
-  filtersModal.classList.add("hidden");
+function closeCategoriesPopup() {
+  categoriesModal.classList.add("hidden");
   document.body.classList.remove("popup-open");
 }
 
-filtersButton.addEventListener("click", openFilters);
+categoriesBtn.addEventListener("click", openCategoriesPopup);
+categoriesClose.addEventListener("click", closeCategoriesPopup);
+categoriesOverlay.addEventListener("click", closeCategoriesPopup);
+
+/* ============================================================
+   SEARCH POPUP (mobile search button)
+============================================================ */
+function openSearchPopup() {
+  searchModal.classList.remove("hidden");
+  document.body.classList.add("popup-open");
+  document.getElementById("searchPopupInput").focus();
+}
+function closeSearchPopup() {
+  searchModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
+}
+searchModalClose.addEventListener("click", closeSearchPopup);
+searchModalOverlay.addEventListener("click", closeSearchPopup);
+
+/* ============================================================
+   FILTER POPUP
+============================================================ */
+filtersButton.addEventListener("click", () => {
+  filtersModal.classList.remove("hidden");
+  document.body.classList.add("popup-open");
+});
+document
+  .querySelector("#filtersModal .modal-close")
+  .addEventListener("click", () => {
+    filtersModal.classList.add("hidden");
+    document.body.classList.remove("popup-open");
+  });
+document
+  .querySelector("#filtersModal .modal-overlay")
+  .addEventListener("click", () => {
+    filtersModal.classList.add("hidden");
+    document.body.classList.remove("popup-open");
+  });
 
 applyFiltersButton.addEventListener("click", () => {
-  closeFilters();
+  filtersModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
   renderBooks();
 });
 
@@ -188,55 +242,47 @@ clearFiltersButton.addEventListener("click", () => {
   currentPagesFilter = "any";
   sizeFilterSelect.value = "any";
   pagesFilterSelect.value = "any";
-  closeFilters();
-  renderBooks();
-});
-
-sizeFilterSelect.addEventListener("change", () => {
-  currentSizeFilter = sizeFilterSelect.value;
-  renderBooks();
-});
-pagesFilterSelect.addEventListener("change", () => {
-  currentPagesFilter = pagesFilterSelect.value;
   renderBooks();
 });
 
 /* ============================================================
-   SORT MENU (ONLY SORT OPTIONS)
+   SORT DROPDOWN
 ============================================================ */
 function initSortMenu() {
-  const wrap = document.createElement("div");
-  wrap.className = "sort-wrapper";
-  sortInlineButton.parentNode.insertBefore(wrap, sortInlineButton);
-  wrap.appendChild(sortInlineButton);
+  const wrapper = document.createElement("div");
+  wrapper.className = "sort-wrapper";
+  sortInlineButton.parentElement.insertBefore(wrapper, sortInlineButton);
+  wrapper.appendChild(sortInlineButton);
 
   sortMenu = document.createElement("div");
   sortMenu.className = "sort-menu";
-  wrap.appendChild(sortMenu);
+  wrapper.appendChild(sortMenu);
 
-  const opts = [
+  const allSortOptions = [
     ["relevance", "Relevance"],
-    ["title", "Title (A–Z)"],
-    ["author", "Author (A–Z)"],
-    ["category", "Category"],
+    ["title", "Title A–Z"],
+    ["author", "Author A–Z"],
+    ["category", "Category A–Z"],
     ["sizeAsc", "Size ↑"],
     ["sizeDesc", "Size ↓"],
     ["pagesAsc", "Pages ↑"],
     ["pagesDesc", "Pages ↓"]
   ];
 
-  opts.forEach(([val, label]) => {
-    const btn = document.createElement("button");
-    btn.className = "sort-option";
-    btn.dataset.value = val;
-    btn.textContent = label;
-    btn.addEventListener("click", () => {
-      currentSort = val;
+  allSortOptions.forEach(([v, label]) => {
+    const b = document.createElement("button");
+    b.className = "sort-option";
+    b.dataset.sort = v;
+    b.textContent = label;
+
+    b.addEventListener("click", () => {
+      currentSort = v;
       updateSortActive();
       sortMenu.classList.remove("open");
       renderBooks();
     });
-    sortMenu.appendChild(btn);
+
+    sortMenu.appendChild(b);
   });
 
   sortInlineButton.addEventListener("click", (e) => {
@@ -258,16 +304,15 @@ function updateSortActive() {
   sortMenu
     .querySelectorAll(".sort-option")
     .forEach((btn) =>
-      btn.classList.toggle("active", btn.dataset.value === currentSort)
+      btn.classList.toggle("active", btn.dataset.sort === currentSort)
     );
 }
 
 /* ============================================================
-   SIZE / PAGE FILTER CHECK
+   FILTERING LOGIC
 ============================================================ */
 function passSize(b) {
   if (!b.sizeMB && currentSizeFilter !== "any") return false;
-
   switch (currentSizeFilter) {
     case "lt1":
       return b.sizeMB < 1;
@@ -281,14 +326,12 @@ function passSize(b) {
       return b.sizeMB >= 500 && b.sizeMB <= 1000;
     case "gt1000":
       return b.sizeMB > 1000;
-    default:
-      return true;
   }
+  return true;
 }
 
 function passPages(b) {
   if (!b.pages && currentPagesFilter !== "any") return false;
-
   switch (currentPagesFilter) {
     case "lt100":
       return b.pages < 100;
@@ -302,17 +345,14 @@ function passPages(b) {
       return b.pages >= 1000 && b.pages <= 2000;
     case "gt2000":
       return b.pages > 2000;
-    default:
-      return true;
   }
+  return true;
 }
 
 /* ============================================================
-   FILTER + SORT + SEARCH
+   SORT + FILTER + SEARCH PIPELINE
 ============================================================ */
-function filteredBooks() {
-  const q = norm(currentSearch);
-
+function getFilteredBooks() {
   let arr = books.filter((b) => {
     if (currentCategory === "bookmarked") {
       if (!bookmarks.includes(b.title)) return false;
@@ -323,8 +363,8 @@ function filteredBooks() {
     if (!passSize(b)) return false;
     if (!passPages(b)) return false;
 
-    if (q) {
-      const text =
+    if (currentSearch) {
+      const t =
         b.title +
         " " +
         b.author +
@@ -335,7 +375,7 @@ function filteredBooks() {
         " " +
         b.tags.join(" ");
 
-      if (!norm(text).includes(q)) return false;
+      if (!norm(t).includes(norm(currentSearch))) return false;
     }
 
     return true;
@@ -369,10 +409,10 @@ function filteredBooks() {
 }
 
 /* ============================================================
-   RENDER BOOK LIST
+   RENDERING BOOK CARDS
 ============================================================ */
 function renderBooks() {
-  const arr = filteredBooks();
+  const arr = getFilteredBooks();
 
   resultsInfo.textContent = arr.length
     ? `${arr.length} Results`
@@ -388,7 +428,7 @@ function renderBooks() {
     card.className = "book-card";
 
     card.innerHTML = `
-      <button class="bookmark-btn" type="button">
+      <button class="bookmark-btn">
         ${
           starred
             ? '<i class="fa-solid fa-star"></i>'
@@ -411,46 +451,34 @@ function renderBooks() {
       </div>
     `;
 
-    card
-      .querySelector(".bookmark-btn")
-      .addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleBookmark(b.title);
-      });
-
-    card.addEventListener("click", () => {
-      openBookPopup(b);
+    card.querySelector(".bookmark-btn").addEventListener("click", (e) => {
+      e.stopPropagation();
+      toggleBookmark(b.title);
     });
+
+    card.addEventListener("click", () => openBookPopup(b));
 
     booksContainer.appendChild(card);
   });
 }
 
 /* ============================================================
-   BOOKMARKS
-============================================================ */
-function toggleBookmark(title) {
-  if (bookmarks.includes(title)) {
-    bookmarks = bookmarks.filter((x) => x !== title);
-  } else {
-    bookmarks.push(title);
-  }
-  localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
-  renderBooks();
-}
-
-/* ============================================================
    BOOK POPUP
 ============================================================ */
 function openBookPopup(b) {
-  const cover = b.cover || "img/book.jpg";
+  const chipHTML =
+    b.tags.length > 0
+      ? b.tags.map((t) => `<span class="tag-chip">${t}</span>`).join("")
+      : "";
 
   bookModalBody.innerHTML = `
     <div class="modal-book-header">
-      <img class="modal-cover" src="${cover}" onerror="this.src='img/book.jpg'">
+      <img class="modal-cover" src="${b.cover}" />
       <div class="modal-book-main">
         <h3>${b.title}</h3>
-        <p>${b.author} • ${b.category}</p>
+        <p class="modal-author-category">
+          ${b.author} • ${b.category} ${chipHTML ? " • " + chipHTML : ""}
+        </p>
       </div>
     </div>
 
@@ -480,14 +508,15 @@ function openBookPopup(b) {
     </div>
   `;
 
-  const popupBtn = bookModalBody.querySelector("#popupBookmark");
-  popupBtn.addEventListener("click", () => {
-    toggleBookmark(b.title);
-    openBookPopup(b); // refresh UI
-  });
-
   bookModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
+
+  document
+    .getElementById("popupBookmark")
+    .addEventListener("click", (e) => {
+      toggleBookmark(b.title);
+      openBookPopup(b);
+    });
 }
 
 function closeBookPopup() {
@@ -499,32 +528,42 @@ bookModalClose.addEventListener("click", closeBookPopup);
 bookModalOverlay.addEventListener("click", closeBookPopup);
 
 /* ============================================================
-   VIEW SWITCHER
+   BOOKMARK TOGGLE
+============================================================ */
+function toggleBookmark(title) {
+  if (bookmarks.includes(title)) {
+    bookmarks = bookmarks.filter((t) => t !== title);
+  } else {
+    bookmarks.push(title);
+  }
+  localStorage.setItem("bookmarks", JSON.stringify(bookmarks));
+  renderBooks();
+}
+
+/* ============================================================
+   VIEW SWITCH
 ============================================================ */
 viewButtons.forEach((btn) => {
   btn.addEventListener("click", () => {
+    currentView = btn.dataset.view;
     viewButtons.forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
-
-    currentView = btn.dataset.view;
     renderBooks();
   });
 });
 
 /* ============================================================
-   SEARCH
+   MAIN SEARCH
 ============================================================ */
 searchButton.addEventListener("click", () => {
   currentSearch = searchInput.value.trim();
   renderBooks();
 });
-
 clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   renderBooks();
 });
-
 searchInput.addEventListener("keyup", (e) => {
   if (e.key === "Enter") {
     currentSearch = searchInput.value.trim();
@@ -533,89 +572,64 @@ searchInput.addEventListener("keyup", (e) => {
 });
 
 /* ============================================================
-   ANDROID BOTTOM NAV
+   MOBILE NAV
 ============================================================ */
-mobileBottomNav?.addEventListener("click", (e) => {
+mobileBottomNav.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-nav]");
   if (!btn) return;
 
   const nav = btn.dataset.nav;
 
   if (nav === "home") {
-    resetHome();
+    currentCategory = "all";
+    currentSearch = "";
+    searchInput.value = "";
+    renderBooks();
   }
 
   if (nav === "bookmarks") {
     currentCategory = "bookmarked";
-    updateCategoryActive();
     renderBooks();
   }
 
   if (nav === "categories") {
-    document
-      .getElementById("categories")
-      .scrollIntoView({ behavior: "smooth" });
+    openCategoriesPopup();
   }
 
   if (nav === "search") {
-    window.scrollTo({ top: 0 });
-    searchInput.focus();
+    openSearchPopup();
   }
 });
 
 /* ============================================================
-   BACK BUTTON LOGIC (PERFECT)
+   BACK BUTTON LOGIC
 ============================================================ */
 function isPopupOpen() {
   return (
+    !categoriesModal.classList.contains("hidden") ||
     !filtersModal.classList.contains("hidden") ||
+    !searchModal.classList.contains("hidden") ||
     !bookModal.classList.contains("hidden")
   );
 }
 
 function closeAllPopups() {
-  if (!filtersModal.classList.contains("hidden")) closeFilters();
-  if (!bookModal.classList.contains("hidden")) closeBookPopup();
+  closeCategoriesPopup();
+  closeFiltersModal();
+  closeSearchPopup();
+  closeBookPopup();
 }
 
-function isHomeState() {
-  return (
-    currentCategory === "all" &&
-    !currentSearch &&
-    currentSizeFilter === "any" &&
-    currentPagesFilter === "any" &&
-    currentSort === "relevance"
-  );
-}
-
-function resetHome() {
-  currentCategory = "all";
-  currentSearch = "";
-  searchInput.value = "";
-  currentSizeFilter = "any";
-  currentPagesFilter = "any";
-  currentSort = "relevance";
-  sizeFilterSelect.value = "any";
-  pagesFilterSelect.value = "any";
-
-  updateCategoryActive();
-  renderBooks();
+function closeFiltersModal() {
+  filtersModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
 }
 
 window.addEventListener("popstate", () => {
-  // 1. if any popup → close it
   if (isPopupOpen()) {
     closeAllPopups();
     return;
   }
-
-  // 2. if not in home state → restore home
-  if (!isHomeState()) {
-    resetHome();
-    return;
-  }
-
-  // 3. already home → do nothing
 });
 
 /* ============================================================
@@ -623,5 +637,3 @@ window.addEventListener("popstate", () => {
 ============================================================ */
 loadBooks();
 initSortMenu();
-renderCategories();
-renderBooks();
