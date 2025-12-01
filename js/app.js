@@ -182,7 +182,7 @@ function buildCategoryPopup() {
       categoriesButton.textContent =
         currentCategory === "all"
           ? "Category ▼"
-          : `Category: ${currentCategory}`;
+          : currentCategory;
       closeCategoriesPopup();
       updateTopButtons();
       renderBooks();
@@ -226,8 +226,12 @@ function updateTopButtons() {
   categoriesButton.classList.remove("active");
 
   if (currentCategory === "all") btnAll.classList.add("active");
-  else if (currentCategory === "bookmarked") btnBookmarked.classList.add("active");
-  else categoriesButton.classList.add("active");
+  else if (currentCategory === "bookmarked") {
+  btnBookmarked.classList.add("active");
+} else if (currentCategory !== "all") {
+  categoriesButton.classList.add("active");
+}
+
 }
 
 /* ============================================================
