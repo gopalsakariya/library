@@ -30,16 +30,27 @@
   <section id="search" class="page-section">
     <div id="searchBar">
       <input type="text" id="searchInput" placeholder="Search books..." />
-      <button id="searchButton"><i class="fa-solid fa-magnifying-glass"></i></button>
-      <button id="clearSearchButton"><i class="fa-solid fa-xmark"></i></button>
+      <button id="searchButton">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+      <button id="clearSearchButton">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
     <div id="resultsInfo"></div>
   </section>
 
-  <!-- CONTROLS ROW -->
-  <section id="categories" class="page-section">
-    <button id="categoriesButton">Categories</button>
+  <!-- TOP CONTROLS ROW: ALL / BOOKMARKED / CATEGORY + FILTERS/SORT/VIEW -->
+  <section id="categories" class="page-section" style="display:flex;align-items:center;gap:0.5rem;">
 
+    <!-- LEFT: ALL / BOOKMARKED / CATEGORY -->
+    <div id="topCategoryButtons" style="display:flex;align-items:center;gap:0.4rem;">
+      <button id="btnAll" class="top-cat-btn active">All</button>
+      <button id="btnBookmarked" class="top-cat-btn">Bookmarked</button>
+      <button id="categoriesButton" class="top-cat-btn">Category ▼</button>
+    </div>
+
+    <!-- RIGHT: FILTERS / SORT / VIEW -->
     <div style="display:flex;align-items:center;gap:0.4rem; margin-left:auto;">
       <button id="filtersButton" class="filters-btn">
         <i class="fa-solid fa-sliders"></i> Filters
@@ -58,6 +69,7 @@
         </button>
       </div>
     </div>
+
   </section>
 
   <!-- BOOKS GRID/LIST -->
@@ -67,7 +79,6 @@
 
 </main>
 
-<!-- FOOTER -->
 <footer>
   <p>© 2025 TheGopal.com</p>
 </footer>
@@ -78,7 +89,9 @@
 <div id="categoriesModal" class="modal hidden">
   <div class="modal-overlay"></div>
   <div class="modal-dialog">
-    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <button class="modal-close" type="button">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
     <h3>Select Category</h3>
     <div id="categoriesModalBody"></div>
   </div>
@@ -90,11 +103,17 @@
 <div id="searchModal" class="modal hidden">
   <div class="modal-overlay"></div>
   <div class="modal-dialog">
-    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <button class="modal-close" type="button">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
     <div class="modal-body">
       <h3>Search</h3>
-      <input id="searchPopupInput" type="text" placeholder="Search books..." />
-      <button id="searchPopupButton" class="modal-btn">
+      <input
+        id="searchPopupInput"
+        type="text"
+        placeholder="Search books..."
+      />
+      <button id="searchPopupButton" class="modal-btn" type="button">
         <i class="fa-solid fa-magnifying-glass"></i> Search
       </button>
     </div>
@@ -107,7 +126,9 @@
 <div id="filtersModal" class="modal hidden">
   <div class="modal-overlay"></div>
   <div class="modal-dialog">
-    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <button class="modal-close" type="button">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
 
     <h3>Filters</h3>
 
@@ -138,8 +159,12 @@
     </div>
 
     <div class="filters-actions">
-      <button id="clearFiltersButton" class="pill-button">Clear</button>
-      <button id="applyFiltersButton" class="pill-button primary">Apply</button>
+      <button id="clearFiltersButton" class="pill-button" type="button">
+        Clear
+      </button>
+      <button id="applyFiltersButton" class="pill-button primary" type="button">
+        Apply
+      </button>
     </div>
   </div>
 </div>
@@ -150,7 +175,9 @@
 <div id="bookModal" class="modal hidden">
   <div class="modal-overlay"></div>
   <div class="modal-dialog">
-    <button class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+    <button class="modal-close" type="button">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
     <div class="modal-body"></div>
   </div>
 </div>
@@ -159,10 +186,18 @@
      MOBILE BOTTOM NAV
 ============================================================ -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
-  <button data-nav="home"><i class="fa-solid fa-house nav-icon"></i></button>
-  <button data-nav="bookmarks"><i class="fa-solid fa-star nav-icon"></i></button>
-  <button data-nav="categories"><i class="fa-solid fa-layer-group nav-icon"></i></button>
-  <button data-nav="search"><i class="fa-solid fa-magnifying-glass nav-icon"></i></button>
+  <button data-nav="home" type="button">
+    <i class="fa-solid fa-house nav-icon"></i>
+  </button>
+  <button data-nav="bookmarks" type="button">
+    <i class="fa-solid fa-star nav-icon"></i>
+  </button>
+  <button data-nav="categories" type="button">
+    <i class="fa-solid fa-layer-group nav-icon"></i>
+  </button>
+  <button data-nav="search" type="button">
+    <i class="fa-solid fa-magnifying-glass nav-icon"></i>
+  </button>
 </nav>
 
 <!-- JS -->
