@@ -272,13 +272,23 @@ body.light .top-cat-btn {
   border-color: var(--accent-cyan);
 }
 
-/* Active */
+/* Active background + border (both themes) */
 .top-cat-btn.active {
   background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
-  color: #f9fafb !important;
   border-color: var(--accent-cyan);
   box-shadow: 0 0 16px rgba(168, 85, 247, 0.85);
 }
+
+/* Active text color in dark mode */
+body.dark .top-cat-btn.active {
+  color: #f9fafb !important;  /* white on dark gradient */
+}
+
+/* Active text/icon color in light mode */
+body.light .top-cat-btn.active {
+  color: #020617 !important;  /* dark text so star is visible */
+}
+
 
 /* Category button special active */
 #categoriesButton.active {
