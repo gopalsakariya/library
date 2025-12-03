@@ -950,6 +950,9 @@ body.light #searchPopupInput {
 /* ============================================================
    SORT MENU POPOVER
 ============================================================ */
+/* ============================================================
+   SORT MENU POPOVER
+============================================================ */
 #sortMenu {
   position: absolute;
   top: 100%;
@@ -959,6 +962,19 @@ body.light #searchPopupInput {
   min-width: 160px;
   border-radius: 14px;
   padding: 0.4rem 0.35rem;
+
+  /* dropdown behaviour */
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transform-origin: top;
+}
+
+/* visible when JS adds .open */
+#sortMenu.open {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 body.dark #sortMenu {
@@ -990,7 +1006,6 @@ body.light #sortMenu {
 .sort-option.active {
   background: rgba(56, 189, 248, 0.16);
 }
-
 /* ============================================================
    MOBILE BOTTOM NAV (ONLY ON MOBILE)
 ============================================================ */
