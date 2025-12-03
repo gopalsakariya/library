@@ -44,20 +44,15 @@ const searchPopupButton = document.getElementById("searchPopupButton");
 const searchModalClose = searchModal.querySelector(".modal-close");
 const searchModalOverlay = searchModal.querySelector(".modal-overlay");
 
+
 /* SORTING */
 const sortInlineButton = document.getElementById("sortInlineButton");
 let sortMenu = null;
 
 /* VIEW SWITCH */
-const viewSwitch = document.getElementById("viewSwitch");
-const viewButtons = viewSwitch
-  ? viewSwitch.querySelectorAll(".view-btn")
-  : [];
+const viewButtons = document.querySelectorAll(".view-btn");
 
-/* THEME */
-const themeToggle = document.getElementById("themeToggle");
-
-/* BOOK MODAL */
+/* BOOK POPUP */
 const bookModal = document.getElementById("bookModal");
 const bookModalBody = bookModal.querySelector(".modal-body");
 const bookModalClose = bookModal.querySelector(".modal-close");
@@ -66,18 +61,20 @@ const bookModalOverlay = bookModal.querySelector(".modal-overlay");
 /* MOBILE NAV */
 const mobileBottomNav = document.getElementById("mobileBottomNav");
 
-/* ============================================================
-   THEME TOGGLE
-============================================================ */
-function applyTheme(theme) {
-  document.body.classList.remove("dark", "light");
-  document.body.classList.add(theme);
+/* THEME */
+const themeToggle = document.getElementById("themeToggle");
 
-  if (theme === "dark") {
-    themeToggle.innerHTML = `<i class="fa-regular fa-moon"></i>`;
-  } else {
-    themeToggle.innerHTML = `<i class="fa-regular fa-sun"></i>`;
-  }
+/* ============================================================
+   THEME LOGIC
+============================================================ */
+function applyTheme(mode) {
+  document.body.classList.remove("dark", "light");
+  document.body.classList.add(mode);
+
+  themeToggle.innerHTML =
+    mode === "dark"
+      ? '<i class="fa-regular fa-sun"></i>'
+      : '<i class="fa-regular fa-moon"></i>';
 }
 
 let savedTheme = localStorage.getItem("theme") || "dark";
@@ -94,59 +91,6 @@ themeToggle.addEventListener("click", () => {
 ============================================================ */
 function norm(x) {
   return (x || "").toString().trim().toLowerCase();
-}
-
-/* ============================================================
-   FUZZY SEARCH HELPERS
-============================================================ */
-function levenshteinDistance(a, b) {
-  a = (a || "").toString();
-  b = (b || "").toString();
-  const m = a.length;
-  const n = b.length;
-
-  if (m === 0) return n;
-  if (n === 0) return m;
-
-  const dp = new Array(n + 1);
-  for (let j = 0; j <= n; j++) {
-    dp[j] = j;
-  }
-
-  for (let i = 1; i <= m; i++) {
-    let prev = dp[0];
-    dp[0] = i;
-    for (let j = 1; j <= n; j++) {
-      const temp = dp[j];
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[j] = Math.min(
-        dp[j] + 1,      // deletion
-        dp[j - 1] + 1,  // insertion
-        prev + cost     // substitution
-      );
-      prev = temp;
-    }
-  }
-
-  return dp[n];
-}
-
-function fuzzyMatch(text, query) {
-  const t = norm(text);
-  const q = norm(query);
-
-  if (!q) return true;
-  if (t.includes(q)) return true;
-
-  const tWords = t.split(/\s+/).filter(Boolean);
-  const qWords = q.split(/\s+/).filter(Boolean);
-  if (!tWords.length || !qWords.length) return false;
-
-  const maxDist = q.length <= 4 ? 1 : 2;
-
-  return qWords.some((qw) =>
-    tWords.some((tw) => levenshteinDistance(tw, qw) <= maxDist)
-  );
 }
 
 function highlight(text) {
@@ -190,17 +134,19 @@ function mapBook(row) {
 
   const rawTags = row.tags?.trim() || "";
   b.tags = rawTags
-    ? rawTags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
+    ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
-  b.sizeMB = row.sizeMB ? Number(row.sizeMB) : null;
-  b.pages = row.pages ? Number(row.pages) : null;
+  b.sizeMB = null;
+  b.pages = null;
 
-  b.language = row.language?.trim() || "";
-  b.year = row.year?.trim() || "";
+  b.tags.forEach((t) => {
+    let m1 = t.toLowerCase().match(/([\d.]+)\s*mb/);
+    if (m1) b.sizeMB = parseFloat(m1[1]);
+
+    let m2 = t.toLowerCase().match(/(\d+)\s*pages?/);
+    if (m2) b.pages = parseInt(m2[1]);
+  });
 
   return b;
 }
@@ -257,164 +203,18 @@ function closeCategoriesPopup() {
   document.body.classList.remove("popup-open");
 }
 
-categoriesButton.addEventListener("click", (e) => {
-  e.stopPropagation();
-  openCategoriesPopup();
-});
+categoriesButton.addEventListener("click", openCategoriesPopup);
 categoriesClose.addEventListener("click", closeCategoriesPopup);
 categoriesOverlay.addEventListener("click", closeCategoriesPopup);
 
 /* ============================================================
-   SEARCH POPUP
-============================================================ */
-function openSearchPopup() {
-  searchModal.classList.remove("hidden");
-  document.body.classList.add("popup-open");
-  searchPopupInput.value = currentSearch || "";
-  searchPopupInput.focus();
-}
-
-function closeSearchPopup() {
-  searchModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-}
-
-searchModalClose.addEventListener("click", closeSearchPopup);
-searchModalOverlay.addEventListener("click", closeSearchPopup);
-
-searchPopupButton.addEventListener("click", () => {
-  const val = searchPopupInput.value.trim();
-  currentSearch = val;
-  searchInput.value = val;
-  renderBooks();
-  closeSearchPopup();
-  if (val) {
-    setHash("#search=" + encodeURIComponent(val));
-  } else if (currentCategory !== "all") {
-    setHash("#category=" + encodeURIComponent(currentCategory));
-  } else {
-    setHash("#all");
-  }
-});
-
-/* ============================================================
-   SORTING
-============================================================ */
-function initSortMenu() {
-  if (!sortInlineButton) return;
-
-  sortInlineButton.addEventListener("click", (e) => {
-    e.stopPropagation();
-    if (sortMenu) {
-      sortMenu.classList.toggle("open");
-      return;
-    }
-
-    sortMenu = document.createElement("div");
-    sortMenu.className = "sort-menu";
-
-    const header = document.createElement("div");
-    header.className = "sort-menu-header";
-    header.textContent = "Sort by";
-    sortMenu.appendChild(header);
-
-    const opts = [
-      ["relevance", "Relevance"],
-      ["title", "Title A → Z"],
-      ["author", "Author A → Z"],
-      ["category", "Category A → Z"],
-      ["sizeAsc", "File Size ↑"],
-      ["sizeDesc", "File Size ↓"],
-      ["pagesAsc", "Pages ↑"],
-      ["pagesDesc", "Pages ↓"]
-    ];
-
-    opts.forEach(([v, label]) => {
-      const b = document.createElement("button");
-      b.className = "sort-option";
-      b.dataset.sort = v;
-      b.textContent = label;
-      b.addEventListener("click", () => {
-        currentSort = v;
-        sortMenu.classList.remove("open");
-        updateSortActive();
-        renderBooks();
-      });
-      sortMenu.appendChild(b);
-    });
-
-    document.body.appendChild(sortMenu);
-
-    const rect = sortInlineButton.getBoundingClientRect();
-    sortMenu.style.position = "fixed";
-    sortMenu.style.top = rect.bottom + 6 + "px";
-    sortMenu.style.right = Math.max(
-      10,
-      window.innerWidth - rect.right - 10
-    ) + "px";
-
-    updateSortActive();
-  });
-
-  document.addEventListener("click", () => {
-    if (sortMenu) sortMenu.classList.remove("open");
-  });
-
-  updateSortActive();
-}
-
-function updateSortActive() {
-  sortInlineButton.classList.toggle("active", currentSort !== "relevance");
-
-  if (!sortMenu) return;
-  sortMenu.querySelectorAll(".sort-option").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.sort === currentSort);
-  });
-}
-
-/* ============================================================
-   SEARCH INPUT (TOP BAR)
-============================================================ */
-function performSearchFromInput() {
-  const val = searchInput.value.trim();
-  currentSearch = val;
-  renderBooks();
-
-  if (val) {
-    setHash("#search=" + encodeURIComponent(val));
-  } else if (currentCategory !== "all") {
-    setHash("#category=" + encodeURIComponent(currentCategory));
-  } else {
-    setHash("#all");
-  }
-}
-
-searchInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    performSearchFromInput();
-  }
-});
-searchButton.addEventListener("click", performSearchFromInput);
-
-clearSearchButton.addEventListener("click", () => {
-  searchInput.value = "";
-  currentSearch = "";
-  renderBooks();
-
-  if (currentCategory !== "all") {
-    setHash("#category=" + encodeURIComponent(currentCategory));
-  } else {
-    setHash("#all");
-  }
-});
-
-/* ============================================================
-   TOP CATEGORY BUTTONS (ALL / BOOKMARKED)
+   TOP BUTTONS LOGIC (All / ★ / Category)
 ============================================================ */
 btnAll.addEventListener("click", () => {
   currentCategory = "all";
   currentSearch = "";
   searchInput.value = "";
+  categoriesButton.textContent = "Category ▼";
   updateTopButtons();
   renderBooks();
   setHash("#all");
@@ -422,8 +222,7 @@ btnAll.addEventListener("click", () => {
 
 btnBookmarked.addEventListener("click", () => {
   currentCategory = "bookmarked";
-  currentSearch = "";
-  searchInput.value = "";
+  categoriesButton.textContent = "Category ▼";
   updateTopButtons();
   renderBooks();
   setHash("#bookmarks");
@@ -447,54 +246,92 @@ function updateTopButtons() {
 }
 
 /* ============================================================
-   VIEW SWITCH (GRID / LIST)
+   SEARCH POPUP
 ============================================================ */
-viewButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const view = btn.dataset.view;
-    currentView = view;
+function openSearchPopup() {
+  searchModal.classList.remove("hidden");
+  document.body.classList.add("popup-open");
+  searchPopupInput.value = currentSearch || "";
+  searchPopupInput.focus();
+}
 
-    viewButtons.forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    renderBooks();
-  });
+function closeSearchPopup() {
+  searchModal.classList.add("hidden");
+  document.body.classList.remove("popup-open");
+}
+
+searchModalClose.addEventListener("click", closeSearchPopup);
+searchModalOverlay.addEventListener("click", closeSearchPopup);
+
+searchPopupButton.addEventListener("click", () => {
+  currentSearch = searchPopupInput.value.trim();
+  closeSearchPopup();
+  renderBooks();
 });
 
 /* ============================================================
-   MOBILE BOTTOM NAV
+   FILTER POPUP
 ============================================================ */
-if (mobileBottomNav) {
-  const navButtons = mobileBottomNav.querySelectorAll("button[data-nav]");
 
-  navButtons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const nav = btn.dataset.nav;
+/* ============================================================
+   SORT MENU
+============================================================ */
+function initSortMenu() {
+  const wrapper = document.createElement("div");
+  wrapper.className = "sort-wrapper";
+  sortInlineButton.parentNode.insertBefore(wrapper, sortInlineButton);
+  wrapper.appendChild(sortInlineButton);
 
-      navButtons.forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+  sortMenu = document.createElement("div");
+  sortMenu.className = "sort-menu";
+  wrapper.appendChild(sortMenu);
 
-      if (nav === "home") {
-        document
-          .getElementById("search")
-          .scrollIntoView({ behavior: "smooth", block: "start" });
-      } else if (nav === "bookmarks") {
-        currentCategory = "bookmarked";
-        currentSearch = "";
-        searchInput.value = "";
-        updateTopButtons();
-        renderBooks();
-        setHash("#bookmarks");
-      } else if (nav === "categories") {
-        openCategoriesPopup();
-      } else if (nav === "search") {
-        openSearchPopup();
-      }
+  const opts = [
+    ["relevance", "Relevance"],
+    ["title", "Title (A–Z)"],
+    ["author", "Author (A–Z)"],
+    ["category", "Category (A–Z)"],
+    ["sizeAsc", "Size ↑"],
+    ["sizeDesc", "Size ↓"],
+    ["pagesAsc", "Pages ↑"],
+    ["pagesDesc", "Pages ↓"]
+  ];
+
+  opts.forEach(([v, label]) => {
+    const b = document.createElement("button");
+    b.className = "sort-option";
+    b.dataset.sort = v;
+    b.textContent = label;
+    b.addEventListener("click", () => {
+      currentSort = v;
+      sortMenu.classList.remove("open");
+      updateSortActive();
+      renderBooks();
     });
+    sortMenu.appendChild(b);
+  });
+
+  sortInlineButton.addEventListener("click", (e) => {
+    e.stopPropagation();
+    sortMenu.classList.toggle("open");
+  });
+
+  document.addEventListener("click", () => sortMenu.classList.remove("open"));
+  updateSortActive();
+}
+
+function updateSortActive() {
+  sortInlineButton.classList.toggle("active", currentSort !== "relevance");
+
+  if (!sortMenu) return;
+  sortMenu.querySelectorAll(".sort-option").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.sort === currentSort);
   });
 }
 
+
 /* ============================================================
-   GET FILTERED BOOKS  (uses fuzzy search now)
+   GET FILTERED BOOKS
 ============================================================ */
 function getFilteredBooks() {
   let arr = books.filter((b) => {
@@ -503,6 +340,7 @@ function getFilteredBooks() {
     } else if (currentCategory !== "all") {
       if (norm(b.category) !== norm(currentCategory)) return false;
     }
+
 
     if (currentSearch) {
       const text =
@@ -515,7 +353,7 @@ function getFilteredBooks() {
         b.description +
         " " +
         b.tags.join(" ");
-      if (!fuzzyMatch(text, currentSearch)) return false;
+      if (!norm(text).includes(norm(currentSearch))) return false;
     }
 
     return true;
@@ -581,40 +419,7 @@ function renderBooks() {
       <div class="book-info">
         <div class="book-title">${highlight(b.title)}</div>
         <div class="book-author">by ${highlight(b.author)}</div>
-        <div class="book-category">Category: ${b.category}</div>
-
-        <div class="book-meta">
-          ${
-            b.sizeMB
-              ? `<span><i class="fa-solid fa-file"></i> ${b.sizeMB} MB</span>`
-              : ""
-          }
-          ${
-            b.pages
-              ? `<span><i class="fa-solid fa-book-open"></i> ${b.pages} pages</span>`
-              : ""
-          }
-          ${
-            b.language
-              ? `<span><i class="fa-solid fa-language"></i> ${b.language}</span>`
-              : ""
-          }
-          ${
-            b.year
-              ? `<span><i class="fa-regular fa-calendar"></i> ${b.year}</span>`
-              : ""
-          }
-        </div>
-
-        ${
-          b.tags && b.tags.length
-            ? `<div class="book-tags">
-                 ${b.tags
-                   .map((t) => `<span class="tag-chip">${t}</span>`)
-                   .join("")}
-               </div>`
-            : ""
-        }
+        <div class="book-category">Category: ${highlight(b.category)}</div>
 
         <div class="book-links">
           <a href="${b.pdfUrl}" target="_blank">
@@ -649,7 +454,7 @@ function toggleBookmark(title) {
 }
 
 /* ============================================================
-   BOOK POPUP
+   BOOK POPUP + URL (#book=encodedPdfUrl)
 ============================================================ */
 function openBookPopup(b) {
   const chipHTML =
@@ -674,12 +479,6 @@ function openBookPopup(b) {
         : ""
     }
 
-    ${
-      b.details
-        ? `<div class="modal-section"><h4>Details</h4><p>${b.details}</p></div>`
-        : ""
-    }
-
     <div class="modal-actions">
       <a href="${b.pdfUrl}" target="_blank" class="modal-btn">
         <i class="fa-solid fa-file-pdf"></i> Get PDF
@@ -687,8 +486,8 @@ function openBookPopup(b) {
       <button id="popupBookmark" class="modal-btn">
         ${
           bookmarks.includes(b.title)
-            ? '<i class="fa-solid fa-star"></i> Remove Bookmark'
-            : '<i class="fa-regular fa-star"></i> Add Bookmark'
+            ? '<i class="fa-solid fa-star"></i> Remove'
+            : '<i class="fa-regular fa-star"></i> Bookmark'
         }
       </button>
     </div>
@@ -697,11 +496,19 @@ function openBookPopup(b) {
   bookModal.classList.remove("hidden");
   document.body.classList.add("popup-open");
 
-  const popupBookmarkBtn = document.getElementById("popupBookmark");
-  popupBookmarkBtn.addEventListener("click", () => {
-    toggleBookmark(b.title);
-    openBookPopup(b); // re-render popup with updated bookmark state
-  });
+  // update hash for shareable URL
+  if (b.pdfUrl) {
+const fileName = b.pdfUrl.split("/").pop();
+setHash("#book=" + encodeURIComponent(fileName));
+
+  }
+
+  document
+    .getElementById("popupBookmark")
+    .addEventListener("click", () => {
+      toggleBookmark(b.title);
+      openBookPopup(b);
+    });
 }
 
 function closeBookPopup() {
@@ -713,10 +520,86 @@ bookModalClose.addEventListener("click", closeBookPopup);
 bookModalOverlay.addEventListener("click", closeBookPopup);
 
 /* ============================================================
-   URL HASH HANDLING
+   VIEW SWITCH
+============================================================ */
+viewButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    currentView = btn.dataset.view;
+    viewButtons.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    renderBooks();
+  });
+});
+
+/* ============================================================
+   MAIN SEARCH
+============================================================ */
+searchButton.addEventListener("click", () => {
+  currentSearch = searchInput.value.trim();
+  renderBooks();
+});
+
+clearSearchButton.addEventListener("click", () => {
+  currentSearch = "";
+  searchInput.value = "";
+  renderBooks();
+});
+
+searchInput.addEventListener("keyup", (e) => {
+  if (e.key === "Enter") {
+    currentSearch = searchInput.value.trim();
+    renderBooks();
+  }
+});
+
+/* ============================================================
+   MOBILE NAV
+============================================================ */
+mobileBottomNav.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-nav]");
+  if (!btn) return;
+
+  const nav = btn.dataset.nav;
+
+  if (nav === "home") {
+    currentCategory = "all";
+    currentSearch = "";
+    searchInput.value = "";
+    categoriesButton.textContent = "Category ▼";
+    updateTopButtons();
+    renderBooks();
+    setHash("#all");
+  }
+
+  if (nav === "bookmarks") {
+    currentCategory = "bookmarked";
+    categoriesButton.textContent = "Category ▼";
+    updateTopButtons();
+    renderBooks();
+    setHash("#bookmarks");
+  }
+
+  if (nav === "categories") {
+    openCategoriesPopup();
+  }
+
+  if (nav === "search") {
+    openSearchPopup();
+  }
+});
+
+/* ============================================================
+   URL ROUTING (HASH) – open correct view/popup
 ============================================================ */
 function applyHashFromLocation() {
-  const hash = window.location.hash.slice(1); // remove #
+  const hashRaw = window.location.hash || "";
+
+  // Close book popup when not on book hash
+  if (!hashRaw.startsWith("#book=")) {
+    closeBookPopup();
+  }
+
+  let hash = hashRaw.replace(/^#/, "");
 
   if (!hash || hash === "all") {
     currentCategory = "all";
@@ -729,8 +612,6 @@ function applyHashFromLocation() {
 
   if (hash === "bookmarks") {
     currentCategory = "bookmarked";
-    currentSearch = "";
-    searchInput.value = "";
     updateTopButtons();
     renderBooks();
     return;
@@ -738,29 +619,17 @@ function applyHashFromLocation() {
 
   if (hash.startsWith("category=")) {
     const cat = decodeURIComponent(hash.slice("category=".length));
-    currentCategory = cat || "all";
-    currentSearch = "";
-    searchInput.value = "";
-    updateTopButtons();
-    renderBooks();
-    return;
-  }
-
-  if (hash.startsWith("search=")) {
-    const q = decodeURIComponent(hash.slice("search=".length));
-    currentCategory = "all";
-    currentSearch = q || "";
-    searchInput.value = q || "";
+    currentCategory = formatCategoryName(cat);
     updateTopButtons();
     renderBooks();
     return;
   }
 
   if (hash.startsWith("book=")) {
-    const fileName = decodeURIComponent(hash.slice("book=".length));
+  const fileName = decodeURIComponent(hash.slice("book=".length));
 
-    // find book by matching filename only
-    const book = books.find((b) => b.pdfUrl.split("/").pop() === fileName);
+  // find book by matching filename only
+  const book = books.find((b) => b.pdfUrl.split("/").pop() === fileName);
 
     if (book) {
       renderBooks();
@@ -768,8 +637,6 @@ function applyHashFromLocation() {
       return;
     } else {
       currentCategory = "all";
-      currentSearch = "";
-      searchInput.value = "";
       updateTopButtons();
       renderBooks();
       return;
