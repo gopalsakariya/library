@@ -281,8 +281,8 @@ body.light #clearSearchButton {
 #categories {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  justify-content: space-between;
+  gap: 0.75rem;
+  justify-content: flex-start;
   margin-top: 0.6rem;
 }
 
@@ -329,11 +329,13 @@ body.light .top-cat-btn {
   color: #f9fafb;
 }
 
-/* Sort + view alignment on right */
-#topRightControls {
+/* Right side: sort + view switch */
+.sort-wrapper {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  position: relative;
 }
 
 /* Sort inline button */
@@ -376,6 +378,7 @@ body.light #sortInlineButton {
   border-radius: 999px;
   padding: 0.12rem;
   border: 1px solid #1f2937;
+  margin: 0;
 }
 
 body.light #viewSwitch {
@@ -578,16 +581,12 @@ body.light .book-links a {
 ============================================================ */
 .category-block {
   width: 100%;
-  padding: 1.15rem 1rem 1.3rem;
+  padding: 1.5rem 1.4rem 1.5rem;
   border-radius: 20px;
   border: 1px solid var(--border-subtle-dark);
   background: radial-gradient(circle at top, #020617, #020617);
   box-shadow: var(--shadow-soft-dark);
   position: relative;
-}
-
-/* Sticky category header effect */
-.category-block {
   scroll-margin-top: 80px; /* helper for scroll-to-category */
 }
 
@@ -597,12 +596,13 @@ body.light .category-block {
   box-shadow: var(--shadow-soft-light);
 }
 
+/* Sticky header inside each category, with space from box edges */
 .category-header {
   position: sticky;
-  top: 54px; /* under main header */
+  top: 60px; /* under main header */
   z-index: 10;
-  padding-bottom: 0.55rem;
-  margin-bottom: 0.65rem;
+  padding: 0.35rem 0 0.75rem;
+  margin: -0.2rem 0 0.8rem;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -649,7 +649,7 @@ body.light .category-header {
   gap: 0.4rem;
 }
 
-/* View all & scroll-to-top (if you add it in HTML) */
+/* View all & scroll-to-top (if used) */
 .category-view-all,
 .category-scroll-top {
   border-radius: 999px;
@@ -673,12 +673,13 @@ body.light .category-header {
   box-shadow: 0 0 14px rgba(96, 165, 250, 0.95);
 }
 
+/* Books inside category block: CENTERED */
 .category-books {
   display: flex;
   flex-wrap: wrap;
   gap: 1.3rem;
-  justify-content: flex-start;
-  margin-top: 0.25rem;
+  justify-content: center; /* center cards horizontally */
+  margin-top: 0.4rem;
 }
 
 /* Pagination row under each category */
@@ -947,12 +948,15 @@ body.light #searchPopupInput {
 }
 
 /* ============================================================
-   SORT MENU POPOVER (if you use one)
+   SORT MENU POPOVER
 ============================================================ */
 #sortMenu {
   position: absolute;
+  top: 100%;
+  left: 0;
+  transform: translateY(0.35rem);
   z-index: 30;
-  margin-top: 0.35rem;
+  min-width: 160px;
   border-radius: 14px;
   padding: 0.4rem 0.35rem;
 }
@@ -973,7 +977,7 @@ body.light #sortMenu {
   width: 100%;
   text-align: left;
   padding: 0.4rem 0.6rem;
-  border-radius: 10px;
+  border-radius: 999px;
   border: none;
   background: transparent;
   font-size: 0.8rem;
@@ -984,13 +988,13 @@ body.light #sortMenu {
   opacity: 1;
 }
 .sort-option.active {
-  background: rgba(56, 189, 248, 0.18);
+  background: rgba(56, 189, 248, 0.16);
 }
 
 /* ============================================================
-   MOBILE BOTTOM NAV
+   MOBILE BOTTOM NAV (ONLY ON MOBILE)
 ============================================================ */
-#bottomNav {
+#mobileBottomNav {
   position: fixed;
   bottom: 0;
   left: 0;
@@ -999,40 +1003,61 @@ body.light #sortMenu {
   display: flex;
   align-items: center;
   justify-content: space-around;
-  padding: 0.4rem 0.35rem env(safe-area-inset-bottom);
+  padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border-subtle-dark);
 }
 
-body.dark #bottomNav {
+body.dark #mobileBottomNav {
   background: rgba(15, 23, 42, 0.98);
 }
-body.light #bottomNav {
+body.light #mobileBottomNav {
   background: rgba(249, 250, 251, 0.98);
   border-top-color: var(--border-subtle-light);
 }
 
-#bottomNav button {
-  border-radius: 999px;
-  border: none;
+/* Hide on desktop & tablets */
+@media (min-width: 768px) {
+  #mobileBottomNav {
+    display: none;
+  }
+}
+
+#mobileBottomNav button {
+  border-radius: 12px;
+  border: 1px solid transparent;
   background: transparent;
-  padding: 0.35rem 0.7rem;
-  font-size: 0.9rem;
+  padding: 0.35rem 0.55rem;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  opacity: 0.7;
-  transition: opacity 130ms ease, transform 130ms ease, background 130ms ease;
+  opacity: 0.8;
+  transition: opacity 130ms ease, transform 130ms ease, background 130ms ease,
+    border-color 130ms ease;
 }
 
-#bottomNav button.active {
+#mobileBottomNav button .nav-icon {
+  font-size: 1.05rem;
+}
+
+body.dark #mobileBottomNav button {
+  color: var(--text-main-dark);
+}
+body.light #mobileBottomNav button {
+  color: var(--text-main-light);
+}
+
+#mobileBottomNav button:hover {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+#mobileBottomNav button.active {
   opacity: 1;
   background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
   color: #f9fafb;
-}
-
-#bottomNav button:hover {
-  transform: translateY(-1px);
+  border-color: rgba(56, 189, 248, 0.65);
 }
 
 /* ============================================================
@@ -1078,7 +1103,7 @@ mark {
   }
 
   .category-block {
-    padding-inline: 0.8rem;
+    padding-inline: 1rem;
   }
 
   .modal-dialog {
@@ -1105,19 +1130,20 @@ mark {
   }
 
   .category-header {
-    top: 50px;
+    top: 56px;
   }
 
+  /* Minimum 2 cards on Android-sized screens */
   .book-card {
     width: calc(50% - 0.9rem);
+  }
+
+  #booksContainer.list-view .book-card {
+    width: 100%;
   }
 }
 
 @media (max-width: 480px) {
-  .book-card {
-    width: 100%;
-  }
-
   .modal-book-header {
     flex-direction: column;
     align-items: center;
