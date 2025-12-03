@@ -16,6 +16,11 @@ let currentSearch = "";
 let currentSort = "relevance";
 let currentView = "grid";
 
+// Per-category pagination for grouped view
+const CATEGORY_PAGE_SIZE = 20; // books per category block
+let categoryPage = {}; // { [categoryName]: currentPageNumber }
+
+
 /* ============================================================
    DOM ELEMENTS
 ============================================================ */
@@ -387,25 +392,16 @@ function getFilteredBooks() {
 }
 
 /* ============================================================
-   RENDER BOOK CARDS
+   RENDER BOOK CARDS (GROUPED + FLAT)
 ============================================================ */
-function renderBooks() {
-  const arr = getFilteredBooks();
+/** Create a single book card DOM element */
+function createBookCard(b) {
+  const starred = bookmarks.includes(b.title);
 
-  resultsInfo.textContent = arr.length
-    ? `${arr.length} Results`
-    : "No results";
+  const card = document.createElement("div");
+  card.className = "book-card";
 
-  booksContainer.classList.toggle("list-view", currentView === "list");
-  booksContainer.innerHTML = "";
-
-  arr.forEach((b) => {
-    const starred = bookmarks.includes(b.title);
-
-    const card = document.createElement("div");
-    card.className = "book-card";
-
-    card.innerHTML = `
+  card.innerHTML = `
       <button class="bookmark-btn">
         ${
           starred
@@ -429,17 +425,156 @@ function renderBooks() {
       </div>
     `;
 
-    card.querySelector(".bookmark-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      toggleBookmark(b.title);
-    });
+  card.querySelector(".bookmark-btn").addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleBookmark(b.title);
+  });
 
-    card.addEventListener("click", () => openBookPopup(b));
+  card.addEventListener("click", () => openBookPopup(b));
 
+  return card;
+}
+
+/* Flat list renderer (used for category, bookmarks, search) */
+function renderFlatList(arr) {
+  resultsInfo.textContent = arr.length
+    ? `${arr.length} Results`
+    : "No results";
+
+  booksContainer.classList.remove("grouped-view");
+  booksContainer.classList.toggle("list-view", currentView === "list");
+  booksContainer.innerHTML = "";
+
+  arr.forEach((b) => {
+    const card = createBookCard(b);
     booksContainer.appendChild(card);
   });
 }
 
+/* Grouped-by-category renderer for ALL view */
+function renderAllCategoriesView(arr) {
+  const totalBooks = arr.length;
+  const categories = getCategories();
+
+  resultsInfo.textContent = totalBooks
+    ? `${categories.length} categories • ${totalBooks} books`
+    : "No books";
+
+  booksContainer.classList.remove("list-view");
+  booksContainer.classList.add("grouped-view");
+  booksContainer.innerHTML = "";
+
+  // Category -> books[]
+  const byCat = {};
+  arr.forEach((b) => {
+    const cat = b.category || "Other";
+    if (!byCat[cat]) byCat[cat] = [];
+    byCat[cat].push(b);
+  });
+
+  categories.forEach((catName) => {
+    const booksInCat = byCat[catName] || [];
+    if (!booksInCat.length) return;
+
+    const totalPages = Math.max(
+      1,
+      Math.ceil(booksInCat.length / CATEGORY_PAGE_SIZE)
+    );
+
+    if (!categoryPage[catName]) {
+      categoryPage[catName] = 1;
+    }
+
+    let page = categoryPage[catName];
+    if (page > totalPages) page = totalPages;
+    categoryPage[catName] = page;
+
+    const start = (page - 1) * CATEGORY_PAGE_SIZE;
+    const visible = booksInCat.slice(start, start + CATEGORY_PAGE_SIZE);
+
+    const block = document.createElement("section");
+    block.className = "category-block";
+    block.dataset.category = catName;
+
+    block.innerHTML = `
+      <div class="category-header">
+        <div class="category-header-main">
+          <h2 class="category-title">${catName}</h2>
+          <span class="category-count">
+            ${booksInCat.length} book${booksInCat.length !== 1 ? "s" : ""}
+          </span>
+        </div>
+        <div class="category-header-actions">
+          <button class="category-view-all" type="button" data-cat="${catName}">
+            View all
+          </button>
+        </div>
+      </div>
+
+      <div class="category-books"></div>
+
+      <div class="category-pagination">
+        <button class="cat-prev" type="button" ${
+          page === 1 ? "disabled" : ""
+        }>
+          <i class="fa-solid fa-arrow-left"></i> Prev
+        </button>
+        <span class="cat-page-info">Page ${page} of ${totalPages}</span>
+        <button class="cat-next" type="button" ${
+          page === totalPages ? "disabled" : ""
+        }>
+          Next <i class="fa-solid fa-arrow-right"></i>
+        </button>
+      </div>
+    `;
+
+    const booksWrapper = block.querySelector(".category-books");
+    visible.forEach((b) => {
+      const card = createBookCard(b);
+      booksWrapper.appendChild(card);
+    });
+
+    const viewAllBtn = block.querySelector(".category-view-all");
+    viewAllBtn.addEventListener("click", () => {
+      currentCategory = catName;
+      updateTopButtons();
+      setHash("#category=" + encodeURIComponent(currentCategory));
+      renderBooks();
+    });
+
+    const prevBtn = block.querySelector(".cat-prev");
+    const nextBtn = block.querySelector(".cat-next");
+
+    prevBtn.addEventListener("click", () => {
+      if (categoryPage[catName] > 1) {
+        categoryPage[catName]--;
+        renderBooks();
+      }
+    });
+
+    nextBtn.addEventListener("click", () => {
+      if (categoryPage[catName] < totalPages) {
+        categoryPage[catName]++;
+        renderBooks();
+      }
+    });
+
+    booksContainer.appendChild(block);
+  });
+}
+
+/* Main render switch */
+function renderBooks() {
+  const arr = getFilteredBooks();
+
+  const isGroupedAllView = currentCategory === "all" && !currentSearch;
+
+  if (isGroupedAllView) {
+    renderAllCategoriesView(arr);
+  } else {
+    renderFlatList(arr);
+  }
+}
 /* ============================================================
    BOOKMARKS
 ============================================================ */
