@@ -480,7 +480,7 @@ body.light .mobile-bottom-nav button { color: #6b7280; }
 body.light .mobile-bottom-nav button:hover, body.light .mobile-bottom-nav button:active { color: #2563eb; }
 
 /* ============================================================
-   RESPONSIVE
+   RESPONSIVE 
 ============================================================ */
 @media (max-width: 768px) {
   .mobile-bottom-nav { display: flex; }
