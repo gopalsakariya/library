@@ -264,14 +264,6 @@ function renderBooks() {
       headerDiv.className = "category-header";
       headerDiv.innerHTML = `
         <h2 class="cat-title">${catName}</h2>
-        <div class="cat-controls">
-            <button class="ctrl-btn view-toggle ${globalView === 'list' ? 'active' : ''}">
-                <i class="fa-solid ${globalView === 'list' ? 'fa-border-all' : 'fa-list'}"></i>
-            </button>
-            <button class="ctrl-btn sort-toggle">
-               <i class="fa-solid fa-arrow-down-wide-short"></i>
-            </button>
-        </div>
       `;
 
       headerDiv.querySelector(".view-toggle").addEventListener("click", () => {
