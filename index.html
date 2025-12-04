@@ -5,13 +5,9 @@
   <title>Library – TheGopal.com</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Font Awesome -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"/>
 
-  <!-- CSS -->
+
   <link rel="stylesheet" href="css/style.css" />
 </head>
 
@@ -19,17 +15,21 @@
 
 <header>
   <h1>Library</h1>
-  <button id="themeToggle" class="theme-toggle">
-    <i class="fa-regular fa-moon"></i>
-  </button>
+  <div class="header-controls">
+    <button id="headerBookmarkBtn" class="theme-toggle" title="Show Bookmarks">
+      <i class="fa-regular fa-star"></i>
+    </button>
+    <button id="themeToggle" class="theme-toggle" title="Toggle Theme">
+      <i class="fa-regular fa-moon"></i>
+    </button>
+  </div>
 </header>
 
 <main>
 
-  <!-- SEARCH BAR -->
   <section id="search" class="page-section">
     <div id="searchBar">
-      <input type="text" id="searchInput" placeholder="Search books..." />
+      <input type="text" id="searchInput" placeholder="Search books... (Press '/')" />
       <button id="searchButton">
         <i class="fa-solid fa-magnifying-glass"></i>
       </button>
@@ -40,42 +40,9 @@
     <div id="resultsInfo"></div>
   </section>
 
-  <!-- TOP CONTROLS ROW: ALL / BOOKMARKED / CATEGORY + FILTERS/SORT/VIEW -->
-  <section id="categories" class="page-section" style="display:flex;align-items:center;gap:0.5rem;">
+  <nav id="categoryNav" class="category-nav hidden"></nav>
 
-    <!-- LEFT: ALL / BOOKMARKED / CATEGORY -->
-    <div id="topCategoryButtons" style="display:flex;align-items:center;gap:0.4rem;">
-      <button id="btnAll" class="top-cat-btn active">All</button>
-     <button id="btnBookmarked" class="top-cat-btn">
-  <i class="fa-solid fa-star"></i>
-</button>
-
-      <button id="categoriesButton" class="top-cat-btn">Category ▼</button>
-    </div>
-
-    <!-- RIGHT: FILTERS / SORT / VIEW -->
-  
-
-      <button id="sortInlineButton">
-        <i class="fa-solid fa-arrow-down-wide-short"></i>
-      </button>
-
-      <div id="viewSwitch">
-        <button class="view-btn active" data-view="grid">
-          <i class="fa-solid fa-border-all"></i>
-        </button>
-        <button class="view-btn" data-view="list">
-          <i class="fa-solid fa-list"></i>
-        </button>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- BOOKS GRID/LIST -->
-  <section id="all-books" class="page-section">
-    <div id="booksContainer"></div>
-  </section>
+  <div id="mainContentArea"></div>
 
 </main>
 
@@ -83,47 +50,6 @@
   <p>© 2025 TheGopal.com</p>
 </footer>
 
-<!-- ============================================================
-     CATEGORY POPUP
-============================================================ -->
-<div id="categoriesModal" class="modal hidden">
-  <div class="modal-overlay"></div>
-  <div class="modal-dialog">
-    <button class="modal-close" type="button">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-    <h3>Select Category</h3>
-    <div id="categoriesModalBody"></div>
-  </div>
-</div>
-
-<!-- ============================================================
-     SEARCH POPUP (MOBILE)
-============================================================ -->
-<div id="searchModal" class="modal hidden">
-  <div class="modal-overlay"></div>
-  <div class="modal-dialog">
-    <button class="modal-close" type="button">
-      <i class="fa-solid fa-xmark"></i>
-    </button>
-    <div class="modal-body">
-      <h3>Search</h3>
-      <input
-        id="searchPopupInput"
-        type="text"
-        placeholder="Search books..."
-      />
-      <button id="searchPopupButton" class="modal-btn" type="button">
-        <i class="fa-solid fa-magnifying-glass"></i> Search
-      </button>
-    </div>
-  </div>
-</div>
-  
-
-<!-- ============================================================
-     BOOK POPUP
-============================================================ -->
 <div id="bookModal" class="modal hidden">
   <div class="modal-overlay"></div>
   <div class="modal-dialog">
@@ -134,9 +60,8 @@
   </div>
 </div>
 
-<!-- ============================================================
-     MOBILE BOTTOM NAV
-============================================================ -->
+
+
 <nav id="mobileBottomNav" class="mobile-bottom-nav">
   <button data-nav="home" type="button">
     <i class="fa-solid fa-house nav-icon"></i>
@@ -144,15 +69,8 @@
   <button data-nav="bookmarks" type="button">
     <i class="fa-solid fa-star nav-icon"></i>
   </button>
-  <button data-nav="categories" type="button">
-    <i class="fa-solid fa-layer-group nav-icon"></i>
-  </button>
-  <button data-nav="search" type="button">
-    <i class="fa-solid fa-magnifying-glass nav-icon"></i>
-  </button>
 </nav>
 
-<!-- JS -->
 <script src="js/app.js"></script>
 
 </body>
