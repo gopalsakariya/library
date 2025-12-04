@@ -264,7 +264,7 @@ function renderBooks() {
       headerDiv.className = "category-header";
       headerDiv.innerHTML = `
         <h2 class="cat-title">${catName}</h2>
-            <div class="cat-controls">
+        <div class="cat-controls">
             <button class="ctrl-btn view-toggle ${globalView === 'list' ? 'active' : ''}">
                 <i class="fa-solid ${globalView === 'list' ? 'fa-border-all' : 'fa-list'}"></i>
             </button>
