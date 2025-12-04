@@ -6,15 +6,15 @@ const SHEET_TAB = "Sheet1";
 const SHEET_URL = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_TAB}`;
 
 /* ============================================================
-   STATE
+   STATE MANAGEMENT
 ============================================================ */
 let books = [];
 let bookmarks = JSON.parse(localStorage.getItem("bookmarks") || "[]");
 
-let currentCategory = "all";
 let currentSearch = "";
-let currentSort = "relevance";
-let currentView = "grid";
+let globalSort = "relevance";
+let globalView = "grid";
+let showOnlyBookmarks = false;
 
 /* ============================================================
    DOM ELEMENTS
@@ -22,61 +22,28 @@ let currentView = "grid";
 const searchInput = document.getElementById("searchInput");
 const searchButton = document.getElementById("searchButton");
 const clearSearchButton = document.getElementById("clearSearchButton");
-
 const resultsInfo = document.getElementById("resultsInfo");
-const booksContainer = document.getElementById("booksContainer");
-
-/* TOP CATEGORY BUTTONS */
-const btnAll = document.getElementById("btnAll");
-const btnBookmarked = document.getElementById("btnBookmarked");
-const categoriesButton = document.getElementById("categoriesButton");
-
-/* CATEGORY POPUP */
-const categoriesModal = document.getElementById("categoriesModal");
-const categoriesModalBody = document.getElementById("categoriesModalBody");
-const categoriesClose = categoriesModal.querySelector(".modal-close");
-const categoriesOverlay = categoriesModal.querySelector(".modal-overlay");
-
-/* SEARCH POPUP */
-const searchModal = document.getElementById("searchModal");
-const searchPopupInput = document.getElementById("searchPopupInput");
-const searchPopupButton = document.getElementById("searchPopupButton");
-const searchModalClose = searchModal.querySelector(".modal-close");
-const searchModalOverlay = searchModal.querySelector(".modal-overlay");
-
-
-/* SORTING */
-const sortInlineButton = document.getElementById("sortInlineButton");
-let sortMenu = null;
-
-/* VIEW SWITCH */
-const viewButtons = document.querySelectorAll(".view-btn");
-
-/* BOOK POPUP */
+const mainContentArea = document.getElementById("mainContentArea");
+const headerBookmarkBtn = document.getElementById("headerBookmarkBtn");
+const categoryNav = document.getElementById("categoryNav");
 const bookModal = document.getElementById("bookModal");
 const bookModalBody = bookModal.querySelector(".modal-body");
 const bookModalClose = bookModal.querySelector(".modal-close");
 const bookModalOverlay = bookModal.querySelector(".modal-overlay");
-
-/* MOBILE NAV */
 const mobileBottomNav = document.getElementById("mobileBottomNav");
-
-/* THEME */
 const themeToggle = document.getElementById("themeToggle");
 
+
 /* ============================================================
-   THEME LOGIC
+   INIT & THEME
 ============================================================ */
 function applyTheme(mode) {
   document.body.classList.remove("dark", "light");
   document.body.classList.add(mode);
-
-  themeToggle.innerHTML =
-    mode === "dark"
-      ? '<i class="fa-regular fa-sun"></i>'
-      : '<i class="fa-regular fa-moon"></i>';
+  themeToggle.innerHTML = mode === "dark" 
+    ? '<i class="fa-regular fa-sun"></i>' 
+    : '<i class="fa-regular fa-moon"></i>';
 }
-
 let savedTheme = localStorage.getItem("theme") || "dark";
 applyTheme(savedTheme);
 
@@ -87,29 +54,60 @@ themeToggle.addEventListener("click", () => {
 });
 
 /* ============================================================
-   HELPERS
+   KEYBOARD SHORTCUTS
 ============================================================ */
-function norm(x) {
-  return (x || "").toString().trim().toLowerCase();
+document.addEventListener("keydown", (e) => {
+    if (e.key === "/" && document.activeElement !== searchInput) {
+        e.preventDefault();
+        searchInput.focus();
+    }
+    if (e.key === "Escape") {
+        if (!bookModal.classList.contains("hidden")) {
+            closeBookPopup();
+        } else if (document.activeElement === searchInput) {
+            searchInput.blur();
+        }
+    }
+});
+
+/* ============================================================
+   HELPERS & FUZZY SEARCH
+============================================================ */
+function norm(x) { return (x || "").toString().trim().toLowerCase(); }
+function getCover(x) { return x ? x : "img/book.jpg"; }
+
+// Levenshtein Distance for Fuzzy Search
+function getEditDistance(a, b) {
+  if (a.length === 0) return b.length;
+  if (b.length === 0) return a.length;
+  const matrix = [];
+  for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+  for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+  for (let i = 1; i <= b.length; i++) {
+    for (let j = 1; j <= a.length; j++) {
+      if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+      else matrix[i][j] = Math.min(matrix[i - 1][j - 1] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j] + 1);
+    }
+  }
+  return matrix[b.length][a.length];
 }
 
-function highlight(text) {
-  if (!currentSearch) return text;
-  const q = currentSearch;
-  return text.replace(new RegExp(q, "gi"), (m) => `<mark>${m}</mark>`);
-}
-
-function getCover(x) {
-  return x ? x : "img/book.jpg";
+function fuzzyMatch(text, query) {
+  const nText = norm(text);
+  const nQuery = norm(query);
+  if (nText.includes(nQuery)) return true; 
+  const allowedErrors = Math.floor(nQuery.length / 4) + 1; 
+  const words = nText.split(/\s+/);
+  for (let w of words) {
+    if (Math.abs(w.length - nQuery.length) > 2) continue; 
+    if (getEditDistance(w, nQuery) <= allowedErrors) return true;
+  }
+  return false;
 }
 
 function formatCategoryName(str) {
   if (!str) return "Other";
-  return str
-    .toString()
-    .split(/\s+/)
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
-    .join(" ");
+  return str.toString().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 }
 
 function setHash(hash) {
@@ -118,330 +116,219 @@ function setHash(hash) {
 }
 
 /* ============================================================
-   LOAD BOOKS
+   DATA LOADING & SKELETON
 ============================================================ */
+function showSkeleton() {
+    let html = `<div class="page-section skeleton-grid">`;
+    for(let i=0; i<12; i++) {
+        html += `<div class="skeleton-card"></div>`;
+    }
+    html += `</div>`;
+    mainContentArea.innerHTML = html;
+}
+
 function mapBook(row) {
   const b = {};
-
   b.title = row.title?.trim() || "";
   b.author = row.author?.trim() || "";
   b.category = formatCategoryName(row.category?.trim() || "Other");
   b.description = row.description?.trim() || "";
-  b.details = row.details?.trim() || "";
   b.cover = getCover(row.cover);
-
   b.pdfUrl = row.pdfurl?.trim() || row.pdf?.trim() || "";
-
+  
   const rawTags = row.tags?.trim() || "";
-  b.tags = rawTags
-    ? rawTags.split(",").map((t) => t.trim()).filter(Boolean)
-    : [];
-
-  b.sizeMB = null;
-  b.pages = null;
-
-  b.tags.forEach((t) => {
-    let m1 = t.toLowerCase().match(/([\d.]+)\s*mb/);
-    if (m1) b.sizeMB = parseFloat(m1[1]);
-
-    let m2 = t.toLowerCase().match(/(\d+)\s*pages?/);
-    if (m2) b.pages = parseInt(m2[1]);
-  });
-
+  b.tags = rawTags ? rawTags.split(",").map((t) => t.trim()).filter(Boolean) : [];
   return b;
 }
 
 function loadBooks() {
+  showSkeleton(); 
+  
   fetch(SHEET_URL)
     .then((r) => r.json())
     .then((rows) => {
       books = rows.map(mapBook);
-      buildCategoryPopup();
-      applyHashFromLocation(); // sync initial URL state
+      renderCategoryNav(); 
+      applyHashFromLocation();
     })
     .catch(() => {
-      booksContainer.innerHTML = "<p>Error loading data</p>";
+      mainContentArea.innerHTML = "<p style='text-align:center;'>Error loading data</p>";
     });
 }
 
-/* ============================================================
-   CATEGORY POPUP
-============================================================ */
-function getCategories() {
-  const s = new Set();
-  books.forEach((b) => {
-    if (b.category) s.add(b.category);
-  });
-  return [...s];
-}
-
-function buildCategoryPopup() {
-  const categories = getCategories();
-
-  categoriesModalBody.innerHTML = categories
-    .map((c) => `<button class="cat-chip" data-cat="${c}">${c}</button>`)
-    .join("");
-
-  categoriesModalBody.querySelectorAll(".cat-chip").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      currentCategory = btn.dataset.cat;
-      categoriesButton.textContent = btn.dataset.cat;
-      closeCategoriesPopup();
-      updateTopButtons();
-      renderBooks();
-      setHash("#category=" + encodeURIComponent(currentCategory));
-    });
-  });
-}
-
-function openCategoriesPopup() {
-  categoriesModal.classList.remove("hidden");
-  document.body.classList.add("popup-open");
-}
-function closeCategoriesPopup() {
-  categoriesModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
-}
-
-categoriesButton.addEventListener("click", openCategoriesPopup);
-categoriesClose.addEventListener("click", closeCategoriesPopup);
-categoriesOverlay.addEventListener("click", closeCategoriesPopup);
-
-/* ============================================================
-   TOP BUTTONS LOGIC (All / ★ / Category)
-============================================================ */
-btnAll.addEventListener("click", () => {
-  currentCategory = "all";
-  currentSearch = "";
-  searchInput.value = "";
-  categoriesButton.textContent = "Category ▼";
-  updateTopButtons();
-  renderBooks();
-  setHash("#all");
-});
-
-btnBookmarked.addEventListener("click", () => {
-  currentCategory = "bookmarked";
-  categoriesButton.textContent = "Category ▼";
-  updateTopButtons();
-  renderBooks();
-  setHash("#bookmarks");
-});
-
-function updateTopButtons() {
-  btnAll.classList.remove("active");
-  btnBookmarked.classList.remove("active");
-  categoriesButton.classList.remove("active");
-
-  if (currentCategory === "all") {
-    btnAll.classList.add("active");
-    categoriesButton.textContent = "Category ▼";
-  } else if (currentCategory === "bookmarked") {
-    btnBookmarked.classList.add("active");
-    categoriesButton.textContent = "Category ▼";
-  } else {
-    categoriesButton.classList.add("active");
-    categoriesButton.textContent = currentCategory;
+function sortBooks(arr) {
+  switch (globalSort) {
+    case "title": return arr.sort((a, b) => a.title.localeCompare(b.title));
+    case "author": return arr.sort((a, b) => a.author.localeCompare(b.author));
+    case "sizeDesc": return arr.sort((a, b) => (b.sizeMB || 0) - (a.sizeMB || 0));
+    default: return arr;
   }
 }
 
-/* ============================================================
-   SEARCH POPUP
-============================================================ */
-function openSearchPopup() {
-  searchModal.classList.remove("hidden");
-  document.body.classList.add("popup-open");
-  searchPopupInput.value = currentSearch || "";
-  searchPopupInput.focus();
+function getUniqueCategories(filteredBooks) {
+    const s = new Set();
+    filteredBooks.forEach(b => s.add(b.category));
+    return Array.from(s).sort();
 }
 
-function closeSearchPopup() {
-  searchModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
+/* ============================================================
+   STICKY CATEGORY NAV & SCROLL SPY
+============================================================ */
+function renderCategoryNav() {
+    const cats = getUniqueCategories(books);
+    if(cats.length < 2) { 
+        categoryNav.classList.add("hidden"); 
+        return; 
+    }
+    
+    categoryNav.classList.remove("hidden");
+    categoryNav.innerHTML = cats.map(c => 
+        `<button class="cat-nav-chip" data-cat="${c}" onclick="scrollToCategory('${c}')">${c}</button>`
+    ).join("");
 }
 
-searchModalClose.addEventListener("click", closeSearchPopup);
-searchModalOverlay.addEventListener("click", closeSearchPopup);
+window.scrollToCategory = (catName) => {
+    const id = `cat-block-${catName.replace(/\s+/g, '-')}`;
+    const el = document.getElementById(id);
+    if(el) {
+        const y = el.getBoundingClientRect().top + window.scrollY - 80;
+        window.scrollTo({top: y, behavior: 'smooth'});
+    }
+};
 
-searchPopupButton.addEventListener("click", () => {
-  currentSearch = searchPopupInput.value.trim();
-  closeSearchPopup();
-  renderBooks();
-});
+// SCROLL SPY
+function initScrollSpy() {
+    const sections = document.querySelectorAll('.category-block');
+    const navLinks = document.querySelectorAll('.cat-nav-chip');
 
-/* ============================================================
-   FILTER POPUP
-============================================================ */
+    if (sections.length === 0) return;
 
-/* ============================================================
-   SORT MENU
-============================================================ */
-function initSortMenu() {
-  const wrapper = document.createElement("div");
-  wrapper.className = "sort-wrapper";
-  sortInlineButton.parentNode.insertBefore(wrapper, sortInlineButton);
-  wrapper.appendChild(sortInlineButton);
-
-  sortMenu = document.createElement("div");
-  sortMenu.className = "sort-menu";
-  wrapper.appendChild(sortMenu);
-
-  const opts = [
-    ["relevance", "Relevance"],
-    ["title", "Title (A–Z)"],
-    ["author", "Author (A–Z)"],
-    ["category", "Category (A–Z)"],
-    ["sizeAsc", "Size ↑"],
-    ["sizeDesc", "Size ↓"],
-    ["pagesAsc", "Pages ↑"],
-    ["pagesDesc", "Pages ↓"]
-  ];
-
-  opts.forEach(([v, label]) => {
-    const b = document.createElement("button");
-    b.className = "sort-option";
-    b.dataset.sort = v;
-    b.textContent = label;
-    b.addEventListener("click", () => {
-      currentSort = v;
-      sortMenu.classList.remove("open");
-      updateSortActive();
-      renderBooks();
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                // Remove active from all
+                navLinks.forEach(link => link.classList.remove('active'));
+                
+                // Add active to current
+                const catName = entry.target.dataset.cat;
+                const activeBtn = Array.from(navLinks).find(btn => btn.dataset.cat === catName);
+                if (activeBtn) {
+                    activeBtn.classList.add('active');
+                    // Keep active button in view
+                    activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }
+            }
+        });
+    }, {
+        rootMargin: '-20% 0px -60% 0px' 
     });
-    sortMenu.appendChild(b);
-  });
 
-  sortInlineButton.addEventListener("click", (e) => {
-    e.stopPropagation();
-    sortMenu.classList.toggle("open");
-  });
-
-  document.addEventListener("click", () => sortMenu.classList.remove("open"));
-  updateSortActive();
+    sections.forEach(section => observer.observe(section));
 }
-
-function updateSortActive() {
-  sortInlineButton.classList.toggle("active", currentSort !== "relevance");
-
-  if (!sortMenu) return;
-  sortMenu.querySelectorAll(".sort-option").forEach((btn) => {
-    btn.classList.toggle("active", btn.dataset.sort === currentSort);
-  });
-}
-
 
 /* ============================================================
-   GET FILTERED BOOKS
+   RENDER LOGIC
 ============================================================ */
-function getFilteredBooks() {
-  let arr = books.filter((b) => {
-    if (currentCategory === "bookmarked") {
-      if (!bookmarks.includes(b.title)) return false;
-    } else if (currentCategory !== "all") {
-      if (norm(b.category) !== norm(currentCategory)) return false;
-    }
-
-
+function renderBooks() {
+  mainContentArea.innerHTML = "";
+  
+  let filtered = books.filter((b) => {
+    if (showOnlyBookmarks && !bookmarks.includes(b.title)) return false;
     if (currentSearch) {
-      const text =
-        b.title +
-        " " +
-        b.author +
-        " " +
-        b.category +
-        " " +
-        b.description +
-        " " +
-        b.tags.join(" ");
-      if (!norm(text).includes(norm(currentSearch))) return false;
+      const text = b.title + " " + b.author + " " + b.category + " " + b.tags.join(" ");
+      if (!fuzzyMatch(text, currentSearch)) return false;
     }
-
     return true;
   });
 
-  switch (currentSort) {
-    case "title":
-      arr.sort((a, b) => a.title.localeCompare(b.title));
-      break;
-    case "author":
-      arr.sort((a, b) => a.author.localeCompare(b.author));
-      break;
-    case "category":
-      arr.sort((a, b) => a.category.localeCompare(b.category));
-      break;
-    case "sizeAsc":
-      arr.sort((a, b) => (a.sizeMB || 0) - (b.sizeMB || 0));
-      break;
-    case "sizeDesc":
-      arr.sort((a, b) => (b.sizeMB || 0) - (a.sizeMB || 0));
-      break;
-    case "pagesAsc":
-      arr.sort((a, b) => (a.pages || 0) - (b.pages || 0));
-      break;
-    case "pagesDesc":
-      arr.sort((a, b) => (b.pages || 0) - (a.pages || 0));
-      break;
+  resultsInfo.textContent = filtered.length ? `${filtered.length} Results` : "No results";
+  
+  const cats = getUniqueCategories(filtered);
+
+  if (cats.length === 0) {
+      mainContentArea.innerHTML = `<div class="page-section" style="text-align:center;color:#888;">No books found.</div>`;
+      return;
   }
 
-  return arr;
+  cats.forEach(catName => {
+      let catBooksAll = filtered.filter(b => b.category === catName);
+      catBooksAll = sortBooks(catBooksAll);
+
+      const section = document.createElement("section");
+      section.className = "category-block page-section";
+      section.id = `cat-block-${catName.replace(/\s+/g, '-')}`;
+      section.dataset.cat = catName; // For ScrollSpy
+
+      // Header
+      const headerDiv = document.createElement("div");
+      headerDiv.className = "category-header";
+      headerDiv.innerHTML = `
+        <h2 class="cat-title">${catName}</h2>
+        <div class="cat-controls">
+            <button class="ctrl-btn view-toggle ${globalView === 'list' ? 'active' : ''}">
+                <i class="fa-solid ${globalView === 'list' ? 'fa-border-all' : 'fa-list'}"></i>
+            </button>
+            <button class="ctrl-btn sort-toggle">
+               <i class="fa-solid fa-arrow-down-wide-short"></i>
+            </button>
+        </div>
+      `;
+
+      headerDiv.querySelector(".view-toggle").addEventListener("click", () => {
+          globalView = globalView === "grid" ? "list" : "grid";
+          renderBooks(); 
+      });
+      headerDiv.querySelector(".sort-toggle").addEventListener("click", () => {
+          if (globalSort === "relevance") globalSort = "title";
+          else if (globalSort === "title") globalSort = "sizeDesc";
+          else globalSort = "relevance";
+          renderBooks();
+      });
+      section.appendChild(headerDiv);
+
+      // Grid
+      const grid = document.createElement("div");
+      grid.className = `books-container ${globalView === "list" ? "list-view" : ""}`;
+      
+      catBooksAll.forEach(b => {
+          grid.appendChild(createBookCard(b));
+      });
+      
+      section.appendChild(grid);
+      mainContentArea.appendChild(section);
+  });
+
+  initScrollSpy();
 }
 
-/* ============================================================
-   RENDER BOOK CARDS
-============================================================ */
-function renderBooks() {
-  const arr = getFilteredBooks();
-
-  resultsInfo.textContent = arr.length
-    ? `${arr.length} Results`
-    : "No results";
-
-  booksContainer.classList.toggle("list-view", currentView === "list");
-  booksContainer.innerHTML = "";
-
-  arr.forEach((b) => {
+function createBookCard(b) {
     const starred = bookmarks.includes(b.title);
-
     const card = document.createElement("div");
     card.className = "book-card";
-
+    
     card.innerHTML = `
       <button class="bookmark-btn">
-        ${
-          starred
-            ? '<i class="fa-solid fa-star"></i>'
-            : '<i class="fa-regular fa-star"></i>'
-        }
+        ${starred ? '<i class="fa-solid fa-star"></i>' : '<i class="fa-regular fa-star"></i>'}
       </button>
-
-      <img class="book-cover" src="${b.cover}" onerror="this.src='img/book.jpg'">
-
+      <img class="book-cover" loading="lazy" src="${b.cover}" onerror="this.src='img/book.jpg'">
       <div class="book-info">
-        <div class="book-title">${highlight(b.title)}</div>
-        <div class="book-author">by ${highlight(b.author)}</div>
-        <div class="book-category">Category: ${highlight(b.category)}</div>
-
+        <div class="book-title">${b.title}</div>
+        <div class="book-author">by ${b.author}</div>
         <div class="book-links">
-          <a href="${b.pdfUrl}" target="_blank">
-            <i class="fa-solid fa-file-pdf"></i> Get PDF
-          </a>
+          <a href="${b.pdfUrl}" target="_blank"><i class="fa-solid fa-file-pdf"></i> Get PDF</a>
         </div>
       </div>
     `;
-
     card.querySelector(".bookmark-btn").addEventListener("click", (e) => {
       e.stopPropagation();
       toggleBookmark(b.title);
     });
-
     card.addEventListener("click", () => openBookPopup(b));
-
-    booksContainer.appendChild(card);
-  });
+    return card;
 }
 
 /* ============================================================
-   BOOKMARKS
+   BOOKMARKS & POPUP
 ============================================================ */
 function toggleBookmark(title) {
   if (bookmarks.includes(title)) {
@@ -453,206 +340,121 @@ function toggleBookmark(title) {
   renderBooks();
 }
 
-/* ============================================================
-   BOOK POPUP + URL (#book=encodedPdfUrl)
-============================================================ */
+headerBookmarkBtn.addEventListener("click", () => {
+    showOnlyBookmarks = !showOnlyBookmarks;
+    headerBookmarkBtn.classList.toggle("active", showOnlyBookmarks);
+    if(showOnlyBookmarks) setHash("#bookmarks");
+    else setHash("#all");
+    renderBooks();
+});
+
 function openBookPopup(b) {
-  const chipHTML =
-    b.tags.length > 0
-      ? b.tags.map((t) => `<span class="tag-chip">${t}</span>`).join("")
-      : "";
+  const related = books
+    .filter(x => x.category === b.category && x.title !== b.title)
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 3);
+    
+  let relatedHTML = "";
+  if(related.length > 0) {
+      const cards = related.map(r => `
+        <div class="related-card" onclick='openRelatedTitle("${r.title.replace(/'/g, "\\'")}")'>
+            <img class="related-cover" src="${r.cover}">
+            <div class="related-name">${r.title}</div>
+        </div>
+      `).join("");
+      relatedHTML = `<div class="related-section"><div class="related-title">Related Books</div><div class="related-grid">${cards}</div></div>`;
+  }
+
+  const chipHTML = b.tags.map((t) => `<span class="tag-chip">${t}</span>`).join("");
 
   bookModalBody.innerHTML = `
     <div class="modal-book-header">
       <img class="modal-cover" src="${b.cover}" onerror="this.src='img/book.jpg'">
       <div class="modal-book-main">
         <h3>${b.title}</h3>
-        <p class="modal-author-category">
-          ${b.author} • ${b.category} ${chipHTML ? " • " + chipHTML : ""}
-        </p>
+        <p class="modal-author-category">${b.author} • ${b.category} ${chipHTML}</p>
       </div>
     </div>
-
-    ${
-      b.description
-        ? `<div class="modal-section"><h4>Description</h4><p>${b.description}</p></div>`
-        : ""
-    }
-
+    ${b.description ? `<div class="modal-section"><p>${b.description}</p></div>` : ""}
+    
     <div class="modal-actions">
       <a href="${b.pdfUrl}" target="_blank" class="modal-btn">
         <i class="fa-solid fa-file-pdf"></i> Get PDF
       </a>
       <button id="popupBookmark" class="modal-btn">
-        ${
-          bookmarks.includes(b.title)
-            ? '<i class="fa-solid fa-star"></i> Remove'
-            : '<i class="fa-regular fa-star"></i> Bookmark'
-        }
+        ${bookmarks.includes(b.title) ? '<i class="fa-solid fa-star"></i> Remove' : '<i class="fa-regular fa-star"></i> Save'}
       </button>
+      
     </div>
+    
+    ${relatedHTML}
   `;
 
   bookModal.classList.remove("hidden");
-  document.body.classList.add("popup-open");
-
-  // update hash for shareable URL
   if (b.pdfUrl) {
-const fileName = b.pdfUrl.split("/").pop();
-setHash("#book=" + encodeURIComponent(fileName));
-
+    const fileName = b.pdfUrl.split("/").pop();
+    setHash("#book=" + encodeURIComponent(fileName));
   }
 
-  document
-    .getElementById("popupBookmark")
-    .addEventListener("click", () => {
+  document.getElementById("popupBookmark").addEventListener("click", () => {
       toggleBookmark(b.title);
       openBookPopup(b);
-    });
+  });
+  
 }
+
+
+window.openRelatedTitle = (title) => {
+    const book = books.find(b => b.title === title);
+    if(book) openBookPopup(book);
+};
 
 function closeBookPopup() {
   bookModal.classList.add("hidden");
-  document.body.classList.remove("popup-open");
 }
-
 bookModalClose.addEventListener("click", closeBookPopup);
 bookModalOverlay.addEventListener("click", closeBookPopup);
 
 /* ============================================================
-   VIEW SWITCH
+   SEARCH & INIT
 ============================================================ */
-viewButtons.forEach((btn) => {
-  btn.addEventListener("click", () => {
-    currentView = btn.dataset.view;
-    viewButtons.forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
+function performSearch() {
+    currentSearch = searchInput.value.trim();
     renderBooks();
-  });
-});
-
-/* ============================================================
-   MAIN SEARCH
-============================================================ */
-searchButton.addEventListener("click", () => {
-  currentSearch = searchInput.value.trim();
-  renderBooks();
-});
-
+}
+searchButton.addEventListener("click", performSearch);
 clearSearchButton.addEventListener("click", () => {
   currentSearch = "";
   searchInput.value = "";
   renderBooks();
 });
-
 searchInput.addEventListener("keyup", (e) => {
-  if (e.key === "Enter") {
-    currentSearch = searchInput.value.trim();
-    renderBooks();
-  }
+  if (e.key === "Enter") performSearch();
 });
 
-/* ============================================================
-   MOBILE NAV
-============================================================ */
 mobileBottomNav.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-nav]");
   if (!btn) return;
-
   const nav = btn.dataset.nav;
-
-  if (nav === "home") {
-    currentCategory = "all";
-    currentSearch = "";
-    searchInput.value = "";
-    categoriesButton.textContent = "Category ▼";
-    updateTopButtons();
-    renderBooks();
-    setHash("#all");
-  }
-
-  if (nav === "bookmarks") {
-    currentCategory = "bookmarked";
-    categoriesButton.textContent = "Category ▼";
-    updateTopButtons();
-    renderBooks();
-    setHash("#bookmarks");
-  }
-
-  if (nav === "categories") {
-    openCategoriesPopup();
-  }
-
-  if (nav === "search") {
-    openSearchPopup();
-  }
+  if (nav === "home") { showOnlyBookmarks = false; headerBookmarkBtn.classList.remove("active"); currentSearch=""; searchInput.value=""; setHash("#all"); }
+  if (nav === "bookmarks") { showOnlyBookmarks = true; headerBookmarkBtn.classList.add("active"); setHash("#bookmarks"); }
+  renderBooks();
 });
 
-/* ============================================================
-   URL ROUTING (HASH) – open correct view/popup
-============================================================ */
 function applyHashFromLocation() {
   const hashRaw = window.location.hash || "";
-
-  // Close book popup when not on book hash
-  if (!hashRaw.startsWith("#book=")) {
-    closeBookPopup();
-  }
-
+  if (!hashRaw.startsWith("#book=")) closeBookPopup();
   let hash = hashRaw.replace(/^#/, "");
 
-  if (!hash || hash === "all") {
-    currentCategory = "all";
-    currentSearch = "";
-    searchInput.value = "";
-    updateTopButtons();
-    renderBooks();
-    return;
-  }
-
-  if (hash === "bookmarks") {
-    currentCategory = "bookmarked";
-    updateTopButtons();
-    renderBooks();
-    return;
-  }
-
-  if (hash.startsWith("category=")) {
-    const cat = decodeURIComponent(hash.slice("category=".length));
-    currentCategory = formatCategoryName(cat);
-    updateTopButtons();
-    renderBooks();
-    return;
-  }
+  if (hash === "bookmarks") { showOnlyBookmarks = true; headerBookmarkBtn.classList.add("active"); }
+  else { showOnlyBookmarks = false; headerBookmarkBtn.classList.remove("active"); }
 
   if (hash.startsWith("book=")) {
-  const fileName = decodeURIComponent(hash.slice("book=".length));
-
-  // find book by matching filename only
-  const book = books.find((b) => b.pdfUrl.split("/").pop() === fileName);
-
-    if (book) {
-      renderBooks();
-      openBookPopup(book);
-      return;
-    } else {
-      currentCategory = "all";
-      updateTopButtons();
-      renderBooks();
-      return;
-    }
+      const fileName = decodeURIComponent(hash.slice("book=".length));
+      const book = books.find((b) => b.pdfUrl.split("/").pop() === fileName);
+      if (book) openBookPopup(book);
   }
-
-  // unknown hash → default to all
-  currentCategory = "all";
-  updateTopButtons();
   renderBooks();
 }
-
 window.addEventListener("hashchange", applyHashFromLocation);
-
-/* ============================================================
-   INIT
-============================================================ */
 loadBooks();
-initSortMenu();
